@@ -1,0 +1,112 @@
+{
+  "Comment": "Argus - 4-Rung Hazard Escalation Workflow",
+  "StartAt": "NoticeAgent",
+  "States": {
+    "NoticeAgent": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${NoticeAgentFunctionArn}",
+        "Payload": {
+          "case_id.$": "$.case_id",
+          "rung.$": "$.rung",
+          "timers.$": "$.timers"
+        }
+      },
+      "ResultPath": "$.notice",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "SetTimeout"
+    },
+    "SetTimeout": {
+      "Type": "Pass",
+      "Parameters": {
+        "case_id.$": "$.case_id",
+        "rung.$": "$.rung",
+        "timers.$": "$.timers",
+        "rung_timeout_s.$": "States.ArrayGetItem($.timers, States.MathAdd($.rung, -1))"
+      },
+      "Next": "WaitForFix"
+    },
+    "WaitForFix": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+      "Parameters": {
+        "FunctionName": "${RegisterTokenFunctionArn}",
+        "Payload": {
+          "case_id.$": "$.case_id",
+          "rung.$": "$.rung",
+          "token.$": "$$.Task.Token"
+        }
+      },
+      "TimeoutSecondsPath": "$.rung_timeout_s",
+      "ResultPath": "$.fix",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.Timeout"],
+          "Next": "NextRung"
+        },
+        {
+          "ErrorEquals": ["ClosureRejected"],
+          "Next": "NextRung"
+        }
+      ],
+      "Next": "MarkClosed"
+    },
+    "MarkClosed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${MarkClosedFunctionArn}",
+        "Payload": {
+          "case_id.$": "$.case_id",
+          "outcome": "CLOSED_VERIFIED"
+        }
+      },
+      "End": true
+    },
+    "NextRung": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.rung",
+          "NumericLessThan": 4,
+          "Next": "IncrementRung"
+        }
+      ],
+      "Default": "MarkUnresolved"
+    },
+    "IncrementRung": {
+      "Type": "Pass",
+      "Parameters": {
+        "case_id.$": "$.case_id",
+        "rung.$": "States.MathAdd($.rung, 1)",
+        "timers.$": "$.timers"
+      },
+      "Next": "NoticeAgent"
+    },
+    "MarkUnresolved": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${MarkClosedFunctionArn}",
+        "Payload": {
+          "case_id.$": "$.case_id",
+          "outcome": "UNRESOLVED_FINAL"
+        }
+      },
+      "End": true
+    }
+  }
+}

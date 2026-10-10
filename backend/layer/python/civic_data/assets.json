@@ -1,0 +1,90 @@
+[
+  {
+    "asset_id": "ASSET-001",
+    "type": "open_manhole",
+    "severity": 4,
+    "lat": 28.6331,
+    "lng": 77.2201,
+    "road_id": "minto_road",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-002",
+    "type": "missing_drain_cover",
+    "severity": 3,
+    "lat": 28.6329,
+    "lng": 77.2202,
+    "road_id": "minto_road",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-003",
+    "type": "pothole",
+    "severity": 2,
+    "lat": 28.6332,
+    "lng": 77.2198,
+    "road_id": "minto_road",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-004",
+    "type": "open_manhole",
+    "severity": 5,
+    "lat": 28.4941,
+    "lng": 77.2911,
+    "road_id": "mehrauli_badarpur_road",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-005",
+    "type": "pothole",
+    "severity": 3,
+    "lat": 28.4938,
+    "lng": 77.2908,
+    "road_id": "mehrauli_badarpur_road",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-006",
+    "type": "missing_drain_cover",
+    "severity": 4,
+    "lat": 28.6288,
+    "lng": 77.2411,
+    "road_id": "vikas_marg_ito",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-007",
+    "type": "pothole",
+    "severity": 3,
+    "lat": 28.6284,
+    "lng": 77.2408,
+    "road_id": "vikas_marg_ito",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  },
+  {
+    "asset_id": "ASSET-008",
+    "type": "open_manhole",
+    "severity": 4,
+    "lat": 28.5684,
+    "lng": 77.2348,
+    "road_id": "ring_road_moolchand",
+    "reference_photo_key": null,
+    "provenance": "simulated",
+    "seeded": true
+  }
+]

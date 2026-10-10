@@ -1,0 +1,683 @@
+openapi: 3.0.3
+info:
+  title: Argus API
+  version: 1.0.0
+  description: >
+    Waterlogging prediction and hazard accountability platform for Delhi streets.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: /v1
+security: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - time
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /hotspots:
+    get:
+      summary: List all waterlogging hotspots
+      operationId: getHotspots
+      security: []
+      responses:
+        '200':
+          description: List of hotspots with enriched civic data
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - hotspots
+                properties:
+                  hotspots:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - hotspot_id
+                        - name
+                        - lat
+                        - lng
+                        - coord_verified
+                        - provenance
+                        - features
+                        - road
+                        - jurisdiction
+                        - warranty
+                        - assets
+                      properties:
+                        hotspot_id:
+                          type: string
+                        name:
+                          type: string
+                        lat:
+                          type: number
+                        lng:
+                          type: number
+                        coord_verified:
+                          type: boolean
+                        provenance:
+                          type: string
+                          enum: [sourced, illustrative, simulated]
+                        features:
+                          type: object
+                        road:
+                          type: object
+                        jurisdiction:
+                          $ref: './schemas/Jurisdiction.json'
+                        warranty:
+                          $ref: './schemas/Warranty.json'
+                        assets:
+                          type: array
+                          items:
+                            type: object
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /risk:
+    get:
+      summary: Calculate risk rankings across hotspots
+      operationId: getRisk
+      security: []
+      parameters:
+        - name: mode
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [whatif, live]
+            default: whatif
+        - name: rain_3h_mm
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 200
+            default: 0
+        - name: rain_prev24h_mm
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 300
+            default: 0
+        - name: traffic_slowdown
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0
+      responses:
+        '200':
+          description: Calculated risk rankings
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - mode
+                  - generated_at
+                  - inputs
+                  - model
+                  - scores
+                properties:
+                  mode:
+                    type: string
+                    enum: [whatif, live]
+                  generated_at:
+                    type: string
+                    format: date-time
+                  inputs:
+                    type: object
+                    required:
+                      - rain_3h_mm
+                      - rain_prev24h_mm
+                      - traffic_slowdown
+                      - source
+                    properties:
+                      rain_3h_mm:
+                        type: number
+                      rain_prev24h_mm:
+                        type: number
+                      traffic_slowdown:
+                        type: number
+                      source:
+                        type: string
+                  model:
+                    type: object
+                    required:
+                      - version
+                      - fitted
+                    properties:
+                      version:
+                        type: string
+                      fitted:
+                        type: boolean
+                  scores:
+                    type: array
+                    items:
+                      $ref: './schemas/RiskScore.json'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '502':
+          $ref: '#/components/responses/ModelError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets:
+    get:
+      summary: List registered ground hazards
+      operationId: getAssets
+      security: []
+      responses:
+        '200':
+          description: List of ground assets
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - assets
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - asset_id
+                        - type
+                        - severity
+                        - lat
+                        - lng
+                        - provenance
+                        - seeded
+                      properties:
+                        asset_id:
+                          type: string
+                        type:
+                          type: string
+                          enum: [open_manhole, missing_drain_cover, pothole]
+                        severity:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        lat:
+                          type: number
+                        lng:
+                          type: number
+                        road_id:
+                          type: string
+                          nullable: true
+                        reference_photo_key:
+                          type: string
+                          nullable: true
+                        provenance:
+                          type: string
+                          enum: [sourced, illustrative, simulated]
+                        seeded:
+                          type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /uploads/presign:
+    post:
+      summary: Generate presigned S3 upload URL for hazard or repair photo
+      operationId: presignUpload
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - purpose
+                - content_type
+              properties:
+                purpose:
+                  type: string
+                  enum: [report, fix]
+                content_type:
+                  type: string
+                  enum: [image/jpeg, image/png]
+      responses:
+        '200':
+          description: Presigned S3 upload URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - upload_url
+                  - s3_key
+                  - expires_in
+                properties:
+                  upload_url:
+                    type: string
+                  s3_key:
+                    type: string
+                  expires_in:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /analyze:
+    post:
+      summary: Analyze road hazard photo with Bedrock Nova 2 Lite
+      operationId: analyzeHazard
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - s3_key
+              properties:
+                s3_key:
+                  type: string
+      responses:
+        '200':
+          description: Hazard analysis result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - analysis
+                properties:
+                  analysis:
+                    $ref: './schemas/HazardAnalysis.json'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '413':
+          $ref: '#/components/responses/ImageTooLargeError'
+        '502':
+          $ref: '#/components/responses/ModelError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /resolve:
+    post:
+      summary: Resolve road ownership, jurisdiction, and contractor warranty
+      operationId: resolveLocation
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lat
+                - lng
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+                asset_type:
+                  type: string
+                  nullable: true
+                  enum: [open_manhole, missing_drain_cover, pothole]
+      responses:
+        '200':
+          description: Resolved jurisdiction and warranty
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - jurisdiction
+                  - warranty
+                properties:
+                  road:
+                    type: object
+                    nullable: true
+                  jurisdiction:
+                    $ref: './schemas/Jurisdiction.json'
+                  warranty:
+                    $ref: './schemas/Warranty.json'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /cases:
+    post:
+      summary: Open a new hazard accountability case
+      operationId: createCase
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - timer_profile
+              properties:
+                hotspot_id:
+                  type: string
+                lat:
+                  type: number
+                lng:
+                  type: number
+                asset_type:
+                  type: string
+                  enum: [open_manhole, missing_drain_cover, pothole]
+                analysis:
+                  $ref: './schemas/HazardAnalysis.json'
+                photo_key:
+                  type: string
+                timer_profile:
+                  type: string
+                  enum: [demo, real]
+      responses:
+        '201':
+          description: Case created and escalation workflow started
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/Case.json'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '502':
+          $ref: '#/components/responses/ModelError'
+
+    get:
+      summary: List recent cases
+      operationId: listCases
+      security: []
+      responses:
+        '200':
+          description: List of cases newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - cases
+                properties:
+                  cases:
+                    type: array
+                    items:
+                      $ref: './schemas/Case.json'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /cases/{case_id}:
+    get:
+      summary: Get details and timeline for a case
+      operationId: getCase
+      security: []
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Case details, timeline events, and optional photo URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - case
+                  - events
+                properties:
+                  case:
+                    $ref: './schemas/Case.json'
+                  events:
+                    type: array
+                    items:
+                      $ref: './schemas/CaseEvent.json'
+                  photo_url:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /cases/{case_id}/claim-fix:
+    post:
+      summary: Submit contractor repair verification claim
+      operationId: claimFix
+      security: []
+      parameters:
+        - name: case_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - s3_key
+                - lat
+                - lng
+              properties:
+                s3_key:
+                  type: string
+                lat:
+                  type: number
+                lng:
+                  type: number
+      responses:
+        '200':
+          description: Verification assessment result
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accepted
+                  - reason
+                  - distance_m
+                  - verification
+                properties:
+                  accepted:
+                    type: boolean
+                  reason:
+                    type: string
+                    enum:
+                      - VERIFIED
+                      - TOO_FAR
+                      - HAZARD_STILL_PRESENT
+                      - LOCATION_MISMATCH
+                      - LOW_CONFIDENCE
+                      - CASE_NOT_OPEN
+                  distance_m:
+                    type: number
+                  verification:
+                    type: object
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /tender/clause:
+    post:
+      summary: Extract maintenance and defect-liability clause from tender PDF
+      operationId: extractTenderClause
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - doc_key
+              properties:
+                doc_key:
+                  type: string
+      responses:
+        '200':
+          description: Extracted clause details
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - found
+                  - quote
+                  - page_hint
+                  - verified_in_text
+                properties:
+                  found:
+                    type: boolean
+                  quote:
+                    type: string
+                  page_hint:
+                    type: string
+                  verified_in_text:
+                    type: boolean
+                    nullable: true
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '502':
+          $ref: '#/components/responses/ModelError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /eval/results:
+    get:
+      summary: Fetch latest model evaluation and backtest results
+      operationId: getEvalResults
+      security: []
+      responses:
+        '200':
+          description: Evaluation results from S3
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - rdd2022
+                  - backtest
+                properties:
+                  rdd2022:
+                    type: object
+                    nullable: true
+                  backtest:
+                    type: object
+                    nullable: true
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - BAD_REQUEST
+                - NOT_FOUND
+                - CONFLICT
+                - IMAGE_TOO_LARGE
+                - MODEL_ERROR
+                - INTERNAL
+            message:
+              type: string
+
+  responses:
+    BadRequestError:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ImageTooLargeError:
+      description: Image Too Large
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ModelError:
+      description: Model Inference Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

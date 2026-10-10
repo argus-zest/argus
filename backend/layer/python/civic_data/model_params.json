@@ -1,0 +1,50 @@
+{
+  "version": "expert-prior-v1",
+  "fitted": false,
+  "static": {
+    "bias": -2.2,
+    "w_depression": 0.9,
+    "w_low_rel_elev": 0.8,
+    "w_underpass": 1.4,
+    "w_news": 0.5,
+    "norm": {
+      "depression_m": {
+        "mean": 1.001,
+        "std": 1.5643
+      },
+      "rel_elev_m": {
+        "mean": 0.701,
+        "std": 5.3326
+      }
+    }
+  },
+  "event": {
+    "a_susceptibility": 3.0,
+    "b_rain3h": 1.1,
+    "c_rain24h": 0.5,
+    "d_traffic": 1.0,
+    "bias": -6.5
+  },
+  "bands": [
+    [
+      0.0,
+      0.25,
+      "low"
+    ],
+    [
+      0.25,
+      0.5,
+      "moderate"
+    ],
+    [
+      0.5,
+      0.75,
+      "high"
+    ],
+    [
+      0.75,
+      1.01,
+      "severe"
+    ]
+  ]
+}

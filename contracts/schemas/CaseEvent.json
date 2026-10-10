@@ -1,0 +1,45 @@
+{
+  "title": "CaseEvent",
+  "type": "object",
+  "required": [
+    "case_id",
+    "ts_seq",
+    "type",
+    "message",
+    "rung",
+    "meta"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "ts_seq": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "CASE_OPENED",
+        "JURISDICTION_RESOLVED",
+        "NOTICE_SENT",
+        "REMINDER_SENT",
+        "ESCALATED",
+        "FIX_CLAIMED",
+        "CLOSURE_VERIFIED",
+        "CLOSURE_REJECTED",
+        "UNRESOLVED_FINAL"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "rung": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "meta": {
+      "type": "object"
+    }
+  }
+}

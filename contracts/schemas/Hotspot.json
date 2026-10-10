@@ -1,0 +1,67 @@
+{
+  "title": "Hotspot",
+  "type": "object",
+  "required": [
+    "hotspot_id",
+    "name",
+    "lat",
+    "lng",
+    "coord_verified",
+    "road_id",
+    "features",
+    "provenance"
+  ],
+  "properties": {
+    "hotspot_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
+    "coord_verified": {
+      "type": "boolean"
+    },
+    "road_id": {
+      "type": "string"
+    },
+    "features": {
+      "type": "object",
+      "required": ["underpass"],
+      "properties": {
+        "elev_m": {
+          "type": "number",
+          "nullable": true
+        },
+        "depression_m": {
+          "type": "number",
+          "nullable": true
+        },
+        "rel_elev_m": {
+          "type": "number",
+          "nullable": true
+        },
+        "underpass": {
+          "type": "boolean"
+        },
+        "news_events_count": {
+          "type": "integer",
+          "nullable": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "string",
+      "enum": ["sourced", "illustrative", "simulated"]
+    },
+    "source_url": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

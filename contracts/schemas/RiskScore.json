@@ -1,0 +1,64 @@
+{
+  "title": "RiskScore",
+  "type": "object",
+  "required": [
+    "hotspot_id",
+    "susceptibility",
+    "probability",
+    "band",
+    "drivers"
+  ],
+  "properties": {
+    "hotspot_id": {
+      "type": "string"
+    },
+    "susceptibility": {
+      "type": "number"
+    },
+    "probability": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "band": {
+      "type": "string",
+      "enum": ["low", "moderate", "high", "severe"]
+    },
+    "drivers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "contribution", "missing"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "contribution": {
+            "type": "number"
+          },
+          "missing": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "hazard_under_water": {
+      "type": "object",
+      "required": ["score", "weight", "asset_ids"],
+      "properties": {
+        "score": {
+          "type": "number"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

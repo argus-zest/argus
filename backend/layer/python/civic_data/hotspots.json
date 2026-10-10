@@ -1,0 +1,172 @@
+[
+  {
+    "hotspot_id": "minto_bridge",
+    "name": "Minto Bridge underpass",
+    "lat": 28.633,
+    "lng": 77.22,
+    "coord_verified": false,
+    "road_id": "minto_road",
+    "features": {
+      "elev_m": 214.0,
+      "depression_m": 4.5,
+      "rel_elev_m": -7.12,
+      "underpass": true,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "pul_prahladpur",
+    "name": "Pul Prahladpur underpass",
+    "lat": 28.494,
+    "lng": 77.291,
+    "coord_verified": false,
+    "road_id": "mehrauli_badarpur_road",
+    "features": {
+      "elev_m": 222.0,
+      "depression_m": 0.0,
+      "rel_elev_m": -2.12,
+      "underpass": true,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "ring_road_who",
+    "name": "Ring Road opp. WHO building",
+    "lat": 28.6313,
+    "lng": 77.2406,
+    "coord_verified": false,
+    "road_id": "ring_road_ito",
+    "features": {
+      "elev_m": 218.0,
+      "depression_m": 0.0,
+      "rel_elev_m": 6.0,
+      "underpass": false,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "zakhira_underpass",
+    "name": "Zakhira underpass",
+    "lat": 28.6623,
+    "lng": 77.148,
+    "coord_verified": false,
+    "road_id": "rohtak_road_zakhira",
+    "features": {
+      "elev_m": 217.0,
+      "depression_m": 1.88,
+      "rel_elev_m": -4.88,
+      "underpass": true,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "loni_road_golchakkar",
+    "name": "Loni Road Golchakkar",
+    "lat": 28.683,
+    "lng": 77.297,
+    "coord_verified": false,
+    "road_id": "loni_road",
+    "features": {
+      "elev_m": 213.0,
+      "depression_m": 0.0,
+      "rel_elev_m": 2.75,
+      "underpass": false,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "jahangirpuri_metro_road",
+    "name": "Jahangirpuri Metro Station Road",
+    "lat": 28.7255,
+    "lng": 77.1627,
+    "coord_verified": false,
+    "road_id": "jahangirpuri_road",
+    "features": {
+      "elev_m": 217.0,
+      "depression_m": 0.0,
+      "rel_elev_m": 3.0,
+      "underpass": false,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "karala_kanjhawala",
+    "name": "Karala\u2013Kanjhawala Road",
+    "lat": 28.744,
+    "lng": 77.053,
+    "coord_verified": false,
+    "road_id": "karala_kanjhawala_road",
+    "features": {
+      "elev_m": 216.0,
+      "depression_m": 0.38,
+      "rel_elev_m": -0.62,
+      "underpass": false,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "ito",
+    "name": "ITO junction",
+    "lat": 28.6286,
+    "lng": 77.241,
+    "coord_verified": false,
+    "road_id": "vikas_marg_ito",
+    "features": {
+      "elev_m": 210.0,
+      "depression_m": 3.25,
+      "rel_elev_m": -3.38,
+      "underpass": false,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "azad_market",
+    "name": "Azad Market underpass",
+    "lat": 28.662,
+    "lng": 77.211,
+    "coord_verified": false,
+    "road_id": "azad_market_road",
+    "features": {
+      "elev_m": 238.0,
+      "depression_m": 0.0,
+      "rel_elev_m": 12.0,
+      "underpass": true,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  },
+  {
+    "hotspot_id": "moolchand",
+    "name": "Moolchand underpass",
+    "lat": 28.5683,
+    "lng": 77.2347,
+    "coord_verified": false,
+    "road_id": "ring_road_moolchand",
+    "features": {
+      "elev_m": 219.0,
+      "depression_m": 0.0,
+      "rel_elev_m": 1.38,
+      "underpass": true,
+      "news_events_count": null
+    },
+    "provenance": "illustrative",
+    "source_url": null
+  }
+]

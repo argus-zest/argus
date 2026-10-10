@@ -1,0 +1,49 @@
+{
+  "title": "Warranty",
+  "type": "object",
+  "required": [
+    "status",
+    "contractor_label",
+    "completion_date",
+    "end_date",
+    "days_remaining",
+    "work_type",
+    "clause_text",
+    "tender_doc_key",
+    "provenance"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["in_warranty", "expired", "unknown"]
+    },
+    "contractor_label": {
+      "type": "string"
+    },
+    "completion_date": {
+      "type": "string",
+      "nullable": true
+    },
+    "end_date": {
+      "type": "string",
+      "nullable": true
+    },
+    "days_remaining": {
+      "type": "integer"
+    },
+    "work_type": {
+      "type": "string"
+    },
+    "clause_text": {
+      "type": "string",
+      "nullable": true
+    },
+    "tender_doc_key": {
+      "type": "string",
+      "nullable": true
+    },
+    "provenance": {
+      "type": "string"
+    }
+  }
+}
