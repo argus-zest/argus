@@ -163,7 +163,7 @@ export const App: React.FC = () => {
   const nearbyAssets = selectedHotspot?.assets || [];
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#f0f4f8] text-[#0f172a]">
+    <div className="flex flex-col min-h-screen w-full xl:h-screen xl:overflow-hidden bg-[#f0f4f8] text-[#0f172a]">
       {/* Top Navigation */}
       <Navbar
         isDemoMode={isDemoMode}
@@ -196,53 +196,59 @@ export const App: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="flex-1 flex relative min-h-0 bg-[#f0f4f8]">
+        <div className="flex-1 flex flex-col xl:flex-row relative min-h-0 bg-[#f0f4f8]">
           {/* Left Sidebar Controls */}
-          <Sidebar
-            mode={mode}
-            onModeChange={setMode}
-            rain3h={rain3h}
-            rain24h={rain24h}
-            traffic={traffic}
-            onRain3hChange={setRain3h}
-            onRain24hChange={setRain24h}
-            onTrafficChange={setTraffic}
-            onPreset={handlePreset}
-            hazardUnderWaterMode={hazardUnderWaterMode}
-            onToggleHazardUnderWater={() => setHazardUnderWaterMode((v) => !v)}
-            hotspots={hotspots}
-            riskScores={riskData?.scores || []}
-            selectedHotspotId={selectedHotspotId}
-            onSelectHotspot={handleSelectHotspot}
-            isLoadingRisk={isLoadingRisk}
-            liveError={liveError}
-          />
+          <div className="w-full shrink-0 xl:w-[380px] [&>aside]:w-full [&>aside]:h-auto xl:[&>aside]:h-full">
+            <Sidebar
+              mode={mode}
+              onModeChange={setMode}
+              rain3h={rain3h}
+              rain24h={rain24h}
+              traffic={traffic}
+              onRain3hChange={setRain3h}
+              onRain24hChange={setRain24h}
+              onTrafficChange={setTraffic}
+              onPreset={handlePreset}
+              hazardUnderWaterMode={hazardUnderWaterMode}
+              onToggleHazardUnderWater={() => setHazardUnderWaterMode((v) => !v)}
+              hotspots={hotspots}
+              riskScores={riskData?.scores || []}
+              selectedHotspotId={selectedHotspotId}
+              onSelectHotspot={handleSelectHotspot}
+              isLoadingRisk={isLoadingRisk}
+              liveError={liveError}
+            />
+          </div>
 
           {/* Central Full-Screen Map */}
-          <MapView
-            hotspots={hotspots}
-            assets={assets}
-            riskScores={riskData?.scores || []}
-            selectedHotspotId={selectedHotspotId}
-            onSelectHotspot={handleSelectHotspot}
-            rain3h={rain3h}
-            isPickingLocation={isPickingLocation}
-            onPickLocation={handlePickLocation}
-            isDemoMode={isDemoMode}
-          />
+          <div className="relative h-[55vh] min-h-[360px] shrink-0 xl:h-auto xl:min-h-0 xl:flex-1 xl:min-w-0">
+            <MapView
+              hotspots={hotspots}
+              assets={assets}
+              riskScores={riskData?.scores || []}
+              selectedHotspotId={selectedHotspotId}
+              onSelectHotspot={handleSelectHotspot}
+              rain3h={rain3h}
+              isPickingLocation={isPickingLocation}
+              onPickLocation={handlePickLocation}
+              isDemoMode={isDemoMode}
+            />
+          </div>
 
           {/* Right Selected Hotspot Panel */}
           {isRightPanelOpen && (
-            <RightPanel
-              hotspot={selectedHotspot}
-              score={selectedScore}
-              nearbyAssets={nearbyAssets}
-              onClose={() => setIsRightPanelOpen(false)}
-              onOpenCase={(hs) => {
-                setSelectedHotspotId(hs.hotspot_id);
-                setIsReportOpen(true);
-              }}
-            />
+            <div className="w-full shrink-0 xl:w-[420px] [&>aside]:w-full [&>aside]:h-auto xl:[&>aside]:h-full">
+              <RightPanel
+                hotspot={selectedHotspot}
+                score={selectedScore}
+                nearbyAssets={nearbyAssets}
+                onClose={() => setIsRightPanelOpen(false)}
+                onOpenCase={(hs) => {
+                  setSelectedHotspotId(hs.hotspot_id);
+                  setIsReportOpen(true);
+                }}
+              />
+            </div>
           )}
         </div>
       )}

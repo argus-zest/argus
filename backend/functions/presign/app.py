@@ -2,12 +2,17 @@ import json
 import os
 import uuid
 import boto3
+from botocore.config import Config
 from common.http import ok, err, parse_json
 
 
 def get_s3_client():
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
-    return boto3.client("s3", region_name=region)
+    return boto3.client(
+        "s3", region_name=region,
+        endpoint_url=f"https://s3.{region}.amazonaws.com",
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
 
 
 def lambda_handler(event, context):

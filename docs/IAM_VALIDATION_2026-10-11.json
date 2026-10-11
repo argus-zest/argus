@@ -1,0 +1,146 @@
+{
+  "validation": [
+    {
+      "role": "HealthFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "HotspotsFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "RiskFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "AssetsFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "EvalResultsFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "ScheduledScoreFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "PresignFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "AnalyzeFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "TenderClauseFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "CasesFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "ClaimFixFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "RegisterTokenFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "MarkClosedFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "NoticeAgentFunctionRole",
+      "findings": []
+    },
+    {
+      "role": "EscalationStateMachineRole",
+      "findings": []
+    }
+  ],
+  "simulation": [
+    {
+      "name": "mail-selected",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "mail-external-recipient",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "mail-missing-recipient",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "mail-other-sender",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "upload-put",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "upload-tender-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "case-photo-read",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "case-eval-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "nova-only",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "nova-other-model-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "case-update",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "case-assets-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "health-own-logs",
+      "actual": "implicitDeny",
+      "expected": "allowed"
+    },
+    {
+      "name": "health-other-logs-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    },
+    {
+      "name": "workflow-notice",
+      "actual": "allowed",
+      "expected": "allowed"
+    },
+    {
+      "name": "workflow-analyze-denied",
+      "actual": "implicitDeny",
+      "expected": "implicitDeny"
+    }
+  ]
+}

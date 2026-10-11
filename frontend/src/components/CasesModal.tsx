@@ -215,9 +215,9 @@ export const CasesModal: React.FC<CasesModalProps> = ({
         </div>
 
         {/* Modal Body: Split 2-Column Layout */}
-        <div className="flex-1 flex min-h-0 bg-slate-50/40">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto md:overflow-hidden bg-slate-50/40">
           {/* Left Column: Cases List */}
-          <div className="w-80 border-r border-slate-200 flex flex-col bg-white">
+          <div className="w-full md:w-80 shrink-0 max-h-48 md:max-h-none border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-white">
             <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Active Cases</span>
               <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
@@ -268,7 +268,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
 
           {/* Right Column: Case Details & Timeline */}
           {selectedCase ? (
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white text-slate-800">
+            <div className="flex-1 shrink-0 md:shrink overflow-visible md:overflow-y-auto p-6 space-y-6 bg-white text-slate-800">
               {/* Top Case Summary Card */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between shadow-2xs">
                 <div>

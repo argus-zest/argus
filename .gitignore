@@ -64,6 +64,14 @@ Thumbs.db
 .agent/
 .impeccable/
 
+
+# Repository-local tool installations and caches
+.cache/
+.venv-sam/
+
 # Frontend source modules must not be hidden by the Python lib/ ignore rule
 !frontend/src/lib/
 !frontend/src/lib/**
+
+# Repository-local security tooling
+.tools/

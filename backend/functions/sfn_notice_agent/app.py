@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime, timezone
 import boto3
+from botocore.config import Config
 from common.notice_template import build_notice, get_recipient_role
 from common.ddb import float_to_decimal, decimal_to_float
 
@@ -19,7 +20,11 @@ def get_ses():
 
 def get_s3():
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
-    return boto3.client("s3", region_name=region)
+    return boto3.client(
+        "s3", region_name=region,
+        endpoint_url=f"https://s3.{region}.amazonaws.com",
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
 
 
 def try_agent_draft(case: dict, rung: int) -> dict | None:

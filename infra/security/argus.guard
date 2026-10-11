@@ -1,0 +1,22 @@
+# Project checks complement pinned AWS registry rules and Python infrastructure tests.
+# The upstream TLS rule only recognizes boolean false; IAM also accepts string "false".
+rule argus_tls_deny {
+  Resources.StorageBucketPolicy.Properties.PolicyDocument.Statement[0] {
+    Effect == 'Deny'
+    Principal == '*'
+    Action == 's3:*'
+    Condition.Bool.'aws:SecureTransport' == 'false'
+    Condition.Bool.'aws:PrincipalIsAWSService' == 'false'
+  }
+}
+
+rule argus_production_inference {
+  Globals.Function.Environment.Variables.USE_MOCKS == 'false'
+  Parameters.NovaModelId.Default == 'amazon.nova-lite-v1:0'
+  Parameters.NovaModelId.AllowedValues == ['amazon.nova-lite-v1:0']
+}
+
+let roles = Resources.*[ Type == 'AWS::IAM::Role' ]
+rule argus_no_wildcard_runtime_actions {
+  %roles.Properties.Policies[*].PolicyDocument.Statement[*].Action[*] != /.*\*.*/
+}

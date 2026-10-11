@@ -7,8 +7,10 @@ import boto3
 
 # Ensure layer is importable
 sys.path.insert(0, os.path.abspath("backend/layer/python"))
-from common.data_loader import load_assets, load_hotspots
+from common.data_loader import load_assets, load_hotspots, load_roads, load_contracts
 from common.ddb import float_to_decimal
+from common.jurisdiction import resolve_jurisdiction
+from common.warranty import compute_warranty, find_latest_contract
 
 
 def get_dynamodb(profile: str, region: str):
@@ -16,22 +18,57 @@ def get_dynamodb(profile: str, region: str):
     return session.resource("dynamodb")
 
 
+def enriched_hotspots(as_of):
+    """Raw civic hotspots do not contain the API's required jurisdiction/warranty fields."""
+    roads = {road['road_id']: road for road in load_roads()}
+    contracts = load_contracts()
+    return {
+        hotspot['hotspot_id']: {
+            **hotspot,
+            'jurisdiction': resolve_jurisdiction(roads.get(hotspot.get('road_id')), None),
+            'warranty': compute_warranty(find_latest_contract(contracts, hotspot.get('road_id')), as_of),
+        }
+        for hotspot in load_hotspots()
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Seed demo assets and cases into DynamoDB")
     parser.add_argument("--profile", default="hackathon", help="AWS profile name")
     parser.add_argument("--region", default="ap-southeast-2", help="AWS region")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without modifying tables")
+    parser.add_argument("--repair-seed-metadata", action="store_true",
+                        help="Repair only the three existing seeded cases; preserve records and events")
     args = parser.parse_args()
 
     assets = load_assets()
-    hotspots = {h["hotspot_id"]: h for h in load_hotspots()}
 
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
+    hotspots = enriched_hotspots(now.date())
 
     table_assets_name = os.environ.get("TABLE_ASSETS", "argus-Assets")
     table_cases_name = os.environ.get("TABLE_CASES", "argus-Cases")
     table_events_name = os.environ.get("TABLE_EVENTS", "argus-CaseEvents")
+
+    if args.repair_seed_metadata:
+        if args.dry_run:
+            print('Would repair jurisdiction/warranty for CS-SEED01/02/03 only')
+            return
+        table = get_dynamodb(args.profile, args.region).Table(table_cases_name)
+        for case_id, hotspot_id in [('CS-SEED01', 'minto_bridge'),
+                                    ('CS-SEED02', 'zakhira_underpass'), ('CS-SEED03', 'moolchand')]:
+            hotspot = hotspots[hotspot_id]
+            table.update_item(
+                Key={'case_id': case_id},
+                UpdateExpression='SET jurisdiction = :j, warranty = :w',
+                ConditionExpression='seeded = :seeded',
+                ExpressionAttributeValues=float_to_decimal({
+                    ':j': hotspot['jurisdiction'], ':w': hotspot['warranty'], ':seeded': True,
+                }),
+            )
+        print('Repaired metadata for three seeded cases; existing case dates/events preserved')
+        return
 
     print(f"[*] Seeding demo data (profile={args.profile}, region={args.region}, dry_run={args.dry_run})...")
 

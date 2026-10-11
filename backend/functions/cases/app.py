@@ -4,9 +4,9 @@ import random
 import string
 from datetime import datetime, timezone
 import boto3
+from botocore.config import Config
 from common.http import ok, err, parse_json
-from common.geo import road_for_point
-from common.jurisdiction import resolve_jurisdiction
+from common.jurisdiction import resolve_jurisdiction, road_for_point
 from common.warranty import compute_warranty
 from common.data_loader import load_roads, load_hotspots, load_contracts
 from common.ddb import float_to_decimal, decimal_to_float
@@ -24,7 +24,11 @@ def get_sfn():
 
 def get_s3():
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
-    return boto3.client("s3", region_name=region)
+    return boto3.client(
+        "s3", region_name=region,
+        endpoint_url=f"https://s3.{region}.amazonaws.com",
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
 
 
 def generate_case_id() -> str:

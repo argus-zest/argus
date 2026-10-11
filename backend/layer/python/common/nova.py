@@ -16,8 +16,30 @@ class NovaError(Exception):
         self.message = message
 
 
+def mock_mode_enabled() -> bool:
+    """Enable conservative inference fixtures only for explicitly local execution.
+
+    This does not mock S3, DynamoDB, Step Functions, or SES. Those dependencies
+    must still be replaced by local test doubles; no cloud failure enables mocks.
+    """
+    flag = os.environ.get("USE_MOCKS", "false").lower()
+    if flag not in ("true", "false"):
+        raise NovaError("MOCK_CONFIGURATION", "USE_MOCKS must be true or false")
+    if flag != "true":
+        return False
+    local_sam = os.environ.get("AWS_SAM_LOCAL", "false").lower() == "true"
+    deployed = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME")) or os.environ.get(
+        "AWS_EXECUTION_ENV", ""
+    ).startswith("AWS_Lambda_")
+    if os.environ.get("ARGUS_ENV") != "local" or (deployed and not local_sam):
+        raise NovaError("MOCK_CONFIGURATION", "Mock inference requires explicit local execution")
+    return True
+
+
 def get_bedrock_client():
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
+    if region != "ap-southeast-2":
+        raise NovaError("REGION_POLICY", "Bedrock inference must remain in ap-southeast-2")
     return boto3.client("bedrock-runtime", region_name=region)
 
 
@@ -35,6 +57,8 @@ def converse(
             f"NOVA_MODEL_ID must be {REGIONAL_MODEL_ID} for in-Region inference in ap-southeast-2",
         )
 
+    if mock_mode_enabled():
+        raise NovaError("LOCAL_MOCK_UNSUPPORTED", "Local mocks are available only through the typed analysis helpers")
     client = get_bedrock_client()
     system_param = [{"text": system}] if isinstance(system, str) else system
 
@@ -94,6 +118,14 @@ def analyze_hazard(image_bytes: bytes, fmt: str) -> Dict[str, Any]:
 
     if len(image_bytes) > 3.5 * 1024 * 1024:
         raise NovaError("IMAGE_TOO_LARGE", "Image exceeds maximum allowed size of 3.5 MB")
+
+    if mock_mode_enabled():
+        return {
+            "hazard_type": "unclear", "severity": 0, "submerged": False,
+            "confidence": 0.0, "description": "Local mock: no image inference performed",
+            "visible_evidence": "Local mock fixture; image not inspected",
+            "mock": True, "source": "local_mock",
+        }
 
     tool_config = {
         "tools": [
@@ -209,6 +241,13 @@ def verify_fix(
     if len(after_bytes) > 3.5 * 1024 * 1024:
         raise NovaError("IMAGE_TOO_LARGE", "Repaired image exceeds maximum allowed size of 3.5 MB")
 
+    if mock_mode_enabled():
+        return {
+            "hazard_still_present": True, "same_location_plausible": None,
+            "confidence": 0.0, "explanation": "Local mock: repair was not verified",
+            "mock": True, "source": "local_mock",
+        }
+
     tool_config = {
         "tools": [
             {
@@ -292,6 +331,12 @@ def verify_fix(
 
 
 def extract_clause(pdf_bytes: bytes, doc_name: str) -> Dict[str, Any]:
+    if mock_mode_enabled():
+        return {
+            "found": False, "quote": "", "page_hint": "",
+            "verified_in_text": False, "mock": True, "source": "local_mock",
+        }
+
     sanitized_name = re.sub(r"[^a-zA-Z0-9\s-]", "", doc_name).strip()[:100]
     if not sanitized_name:
         sanitized_name = "tender-doc"

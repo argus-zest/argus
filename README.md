@@ -142,12 +142,12 @@ flowchart TD
 
 ### Prerequisites
 - Python 3.12+
-- Node.js 18+ & npm
+- Node.js 20+ & npm
 - AWS CLI v2 & AWS SAM CLI
 
 ### Running Backend Tests
 ```bash
-# Run complete test suite (38 unit tests across all phases)
+# Run the complete backend and local integration suite
 uv run pytest tests -v
 ```
 
@@ -167,25 +167,30 @@ npm run build
 VITE_USE_MOCKS=true npm run dev
 ```
 
+Local frontend mocks are read-only and visibly labeled; uploads, report/case workflows, and live inference require a backend. Production rejects mock mode. Backend inference fixtures require `USE_MOCKS=true ARGUS_ENV=local` and separate test doubles for storage/persistence/email.
+
+`npm run test:api` provides dependency-free API checks on Node 22.6+ (24 used here); it does not replace TypeScript, Vitest, or browser validation.
+
 Visit `http://localhost:5173/?demo=1` to explore the app with seeded demo data and active keyboard shortcuts (`1` Light, `2` Heavy, `3` Extreme, `0` Clear, `h` Hazard-under-water).
 
 ---
 
 ## 5. Deployment Guide
 
-Deployment is automated via AWS SAM. Follow `docs/HUMAN_TODO.md` for account prerequisites.
+Deployment is automated via AWS SAM. Read [deployment readiness](docs/DEPLOYMENT_READINESS.md) and `docs/HUMAN_TODO.md` first. Obtain explicit approval before deployment, test writes, or billable inference.
 
 ```bash
 # 1. Configure AWS credentials (ap-southeast-2, profile hackathon)
 aws configure --profile hackathon
 
-# 2. Deploy using the provided script
-./scripts/deploy.sh
+# 2. Only after validation, verified identities, and deployment approval
+EXPECTED_AWS_ACCOUNT_ID="<verified-project-id>" \
+SES_FROM="<verified-sender>" DRYRUN_INBOX="<verified-inbox>" ./scripts/deploy.sh
 
-# 3. Seed demo data into DynamoDB
+# 3. Seed demo data into DynamoDB only after test-write approval
 python scripts/seed_demo.py --profile hackathon --region ap-southeast-2
 
-# 4. Run smoke test against deployed API
+# 4. Run smoke test only after approving its writes/inference scope
 ./scripts/smoke_test.sh "https://<api-id>.execute-api.ap-southeast-2.amazonaws.com/v1"
 ```
 

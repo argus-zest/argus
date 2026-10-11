@@ -3,6 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Argus — Delhi Street Hazard Intelligence & Civic Accountability Platform
 
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
+
 Parameters:
   FrontendOrigin:
     Type: String
@@ -10,11 +14,9 @@ Parameters:
     Description: Allowed origin for CORS
   SesFrom:
     Type: String
-    Default: 'noreply@example.com'
     Description: Verified SES email identity for sending notices
   DryRunInbox:
     Type: String
-    Default: 'dryrun@example.com'
     Description: Verified SES email identity for receiving dry-run notices
   NovaModelId:
     Type: String
@@ -31,6 +33,10 @@ Parameters:
     NoEcho: true
     Default: ''
     Description: Optional API key for TomTom flow segment data
+
+Conditions:
+  HasAdditionalFrontendOrigin: !Not
+    - !Equals [!Ref FrontendOrigin, 'http://localhost:5173']
 
 Globals:
   Function:
@@ -62,7 +68,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref FrontendOrigin
-          - 'http://localhost:5173'
+          - !If [HasAdditionalFrontendOrigin, 'http://localhost:5173', !Ref 'AWS::NoValue']
         AllowHeaders:
           - '*'
         AllowMethods:
@@ -86,6 +92,9 @@ Resources:
 
   StorageBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    # Case photo keys remain under uploads/; do not expire evidence automatically.
     Properties:
       BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       PublicAccessBlockConfiguration:
@@ -93,12 +102,12 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      LifecycleConfiguration:
-        Rules:
-          - Id: ExpireUploads
-            Prefix: uploads/
-            Status: Enabled
-            ExpirationInDays: 14
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
@@ -109,11 +118,33 @@ Resources:
               - HEAD
             AllowedOrigins:
               - !Ref FrontendOrigin
-              - 'http://localhost:5173'
+              - !If [HasAdditionalFrontendOrigin, 'http://localhost:5173', !Ref 'AWS::NoValue']
             MaxAge: 3000
+
+  StorageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StorageBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureApplicationTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt StorageBucket.Arn
+              - !Sub '${StorageBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+                aws:PrincipalIsAWSService: 'false'
 
   AssetsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    # Preserve case history and civic data on deletion or replacement.
     Properties:
       TableName: !Sub '${AWS::StackName}-Assets'
       BillingMode: PAY_PER_REQUEST
@@ -126,6 +157,9 @@ Resources:
 
   CasesTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    # Preserve case history and civic data on deletion or replacement.
     Properties:
       TableName: !Sub '${AWS::StackName}-Cases'
       BillingMode: PAY_PER_REQUEST
@@ -138,6 +172,9 @@ Resources:
 
   CaseEventsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    # Preserve case history and civic data on deletion or replacement.
     Properties:
       TableName: !Sub '${AWS::StackName}-CaseEvents'
       BillingMode: PAY_PER_REQUEST
@@ -157,6 +194,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/health/
       Handler: app.handler
+      Role: !GetAtt HealthFunctionRole.Arn
       Events:
         HealthApi:
           Type: HttpApi
@@ -170,6 +208,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/hotspots/
       Handler: app.handler
+      Role: !GetAtt HotspotsFunctionRole.Arn
       Events:
         HotspotsApi:
           Type: HttpApi
@@ -189,9 +228,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/risk/
       Handler: app.handler
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
+      Role: !GetAtt RiskFunctionRole.Arn
       Events:
         RiskApi:
           Type: HttpApi
@@ -205,9 +242,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/assets/
       Handler: app.handler
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref AssetsTable
+      Role: !GetAtt AssetsFunctionRole.Arn
       Events:
         AssetsApi:
           Type: HttpApi
@@ -221,9 +256,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/eval_results/
       Handler: app.handler
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
+      Role: !GetAtt EvalResultsFunctionRole.Arn
       Events:
         EvalResultsApi:
           Type: HttpApi
@@ -238,9 +271,7 @@ Resources:
       CodeUri: backend/functions/scheduled_score/
       Handler: app.handler
       Timeout: 60
-      Policies:
-        - S3CrudPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
+      Role: !GetAtt ScheduledScoreFunctionRole.Arn
       Events:
         HourlyScoreRule:
           Type: Schedule
@@ -252,9 +283,7 @@ Resources:
     Properties:
       CodeUri: backend/functions/presign/
       Handler: app.lambda_handler
-      Policies:
-        - S3WritePolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
+      Role: !GetAtt PresignFunctionRole.Arn
       Events:
         PresignApi:
           Type: HttpApi
@@ -269,15 +298,7 @@ Resources:
       CodeUri: backend/functions/analyze/
       Handler: app.lambda_handler
       ReservedConcurrentExecutions: 5
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource:
-                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
+      Role: !GetAtt AnalyzeFunctionRole.Arn
       Events:
         AnalyzeApi:
           Type: HttpApi
@@ -292,15 +313,7 @@ Resources:
       CodeUri: backend/functions/tender_clause/
       Handler: app.lambda_handler
       ReservedConcurrentExecutions: 5
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource:
-                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
+      Role: !GetAtt TenderClauseFunctionRole.Arn
       Events:
         TenderClauseApi:
           Type: HttpApi
@@ -317,13 +330,7 @@ Resources:
       Environment:
         Variables:
           STATE_MACHINE_ARN: !Ref EscalationStateMachine
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CasesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CaseEventsTable
-        - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt EscalationStateMachine.Name
+      Role: !GetAtt CasesFunctionRole.Arn
       Events:
         CreateCaseApi:
           Type: HttpApi
@@ -350,24 +357,7 @@ Resources:
       CodeUri: backend/functions/claim_fix/
       Handler: app.handler
       ReservedConcurrentExecutions: 5
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CasesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CaseEventsTable
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
-        - Statement:
-            - Effect: Allow
-              Action:
-                - states:SendTaskSuccess
-                - states:SendTaskFailure
-              Resource: '*'
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource:
-                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
+      Role: !GetAtt ClaimFixFunctionRole.Arn
       Events:
         ClaimFixApi:
           Type: HttpApi
@@ -381,21 +371,13 @@ Resources:
     Properties:
       CodeUri: backend/functions/sfn_register_token/
       Handler: app.lambda_handler
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CasesTable
-
+      Role: !GetAtt RegisterTokenFunctionRole.Arn
   MarkClosedFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/functions/sfn_mark_closed/
       Handler: app.lambda_handler
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CasesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CaseEventsTable
-
+      Role: !GetAtt MarkClosedFunctionRole.Arn
   NoticeAgentFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -404,24 +386,7 @@ Resources:
       ReservedConcurrentExecutions: 5
       Timeout: 60
       MemorySize: 1024
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CasesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CaseEventsTable
-        - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
-        - Statement:
-            - Effect: Allow
-              Action:
-                - ses:SendEmail
-              Resource: !Sub 'arn:aws:ses:ap-southeast-2:${AWS::AccountId}:identity/*'
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource:
-                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
-
+      Role: !GetAtt NoticeAgentFunctionRole.Arn
   EscalationStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
@@ -430,13 +395,575 @@ Resources:
         NoticeAgentFunctionArn: !GetAtt NoticeAgentFunction.Arn
         RegisterTokenFunctionArn: !GetAtt RegisterTokenFunction.Arn
         MarkClosedFunctionArn: !GetAtt MarkClosedFunction.Arn
+      Role: !GetAtt EscalationStateMachineRole.Arn
+  # Explicit roles use reviewed Autopilot actions with exact runtime resources.
+  HealthFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
       Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref NoticeAgentFunction
-        - LambdaInvokePolicy:
-            FunctionName: !Ref RegisterTokenFunction
-        - LambdaInvokePolicy:
-            FunctionName: !Ref MarkClosedFunction
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-HealthFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-HealthFunction-*:log-stream:*
+  HotspotsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-HotspotsFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-HotspotsFunction-*:log-stream:*
+  RiskFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-RiskFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-RiskFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/exports/latest_scores.json
+  AssetsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-AssetsFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-AssetsFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:Scan
+            Resource:
+            - Fn::GetAtt:
+              - AssetsTable
+              - Arn
+  EvalResultsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-EvalResultsFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-EvalResultsFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/eval/*
+  ScheduledScoreFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-ScheduledScoreFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-ScheduledScoreFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/exports/latest_scores.json
+  PresignFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-PresignFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-PresignFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/uploads/*
+  AnalyzeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-AnalyzeFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-AnalyzeFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/uploads/*
+          - Effect: Allow
+            Action:
+            - bedrock:InvokeModel
+            Resource:
+            - arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0
+  TenderClauseFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-TenderClauseFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-TenderClauseFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/tenders/*
+          - Effect: Allow
+            Action:
+            - bedrock:InvokeModel
+            Resource:
+            - arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0
+  CasesFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-CasesFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-CasesFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:Scan
+            Resource:
+            - Fn::GetAtt:
+              - CasesTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            Resource:
+            - Fn::GetAtt:
+              - CaseEventsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/uploads/*
+          - Effect: Allow
+            Action:
+            - states:StartExecution
+            Resource:
+            - Ref: EscalationStateMachine
+  ClaimFixFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-ClaimFixFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-ClaimFixFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - CasesTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            Resource:
+            - Fn::GetAtt:
+              - CaseEventsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/uploads/*
+          - Effect: Allow
+            Action:
+            - bedrock:InvokeModel
+            Resource:
+            - arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0
+          - Effect: Allow
+            Action:
+            - states:SendTaskSuccess
+            - states:SendTaskFailure
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: ap-southeast-2
+  RegisterTokenFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-RegisterTokenFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-RegisterTokenFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - CasesTable
+              - Arn
+  MarkClosedFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-MarkClosedFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-MarkClosedFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:UpdateItem
+            Resource:
+            - Fn::GetAtt:
+              - CasesTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            Resource:
+            - Fn::GetAtt:
+              - CaseEventsTable
+              - Arn
+  NoticeAgentFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: RuntimeAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-NoticeAgentFunction-*
+          - Effect: Allow
+            Action:
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource:
+            - Fn::Sub: arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-NoticeAgentFunction-*:log-stream:*
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            Resource:
+            - Fn::GetAtt:
+              - CasesTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - dynamodb:Query
+            - dynamodb:PutItem
+            Resource:
+            - Fn::GetAtt:
+              - CaseEventsTable
+              - Arn
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+            - Fn::Sub: ${StorageBucket.Arn}/uploads/*
+          - Effect: Allow
+            Action:
+            - bedrock:InvokeModel
+            Resource:
+            - arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0
+          - Effect: Allow
+            Action:
+            - ses:SendEmail
+            Resource:
+            - Fn::Sub: arn:aws:ses:ap-southeast-2:${AWS::AccountId}:identity/${SesFrom}
+            Condition:
+              StringEquals:
+                ses:FromAddress:
+                  Ref: SesFrom
+              ForAllValues:StringEquals:
+                ses:Recipients:
+                - Ref: DryRunInbox
+              'Null':
+                ses:Recipients: 'false'
+  EscalationStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: states.amazonaws.com
+          Action: sts:AssumeRole
+          Condition:
+            StringEquals:
+              aws:SourceAccount:
+                Ref: AWS::AccountId
+            ArnLike:
+              aws:SourceArn:
+                Fn::Sub: arn:aws:states:ap-southeast-2:${AWS::AccountId}:stateMachine:EscalationStateMachine-*
+      Policies:
+      - PolicyName: WorkflowInvocations
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource:
+            - Fn::GetAtt:
+              - NoticeAgentFunction
+              - Arn
+            - Fn::GetAtt:
+              - RegisterTokenFunction
+              - Arn
+            - Fn::GetAtt:
+              - MarkClosedFunction
+              - Arn
 
 Outputs:
   ApiBase:
@@ -452,3 +979,12 @@ Outputs:
     Description: DynamoDB Table Names
     Value: !Sub '${AssetsTable}, ${CasesTable}, ${CaseEventsTable}'
 
+  AssetsTableName:
+    Description: Civic assets DynamoDB table
+    Value: !Ref AssetsTable
+  CasesTableName:
+    Description: Cases DynamoDB table
+    Value: !Ref CasesTable
+  CaseEventsTableName:
+    Description: Case history DynamoDB table
+    Value: !Ref CaseEventsTable

@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Hotspot, GroundAsset, RiskScore } from '../lib/types';
 import { getBandColor, getHazardColor } from '../lib/api';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
+
+// Bundle MapLibre 6's separate worker; its default relative URL breaks after Vite optimization.
+maplibregl.setWorkerUrl(mapWorkerUrl);
 
 interface MapViewProps {
   hotspots: Hotspot[];

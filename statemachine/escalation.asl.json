@@ -55,10 +55,12 @@
       "Catch": [
         {
           "ErrorEquals": ["States.Timeout"],
+          "ResultPath": "$.wait_error",
           "Next": "NextRung"
         },
         {
           "ErrorEquals": ["ClosureRejected"],
+          "ResultPath": "$.wait_error",
           "Next": "NextRung"
         }
       ],

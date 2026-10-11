@@ -10,7 +10,7 @@ import boto3
 
 # Ensure layer is importable
 sys.path.insert(0, os.path.abspath("backend/layer/python"))
-from common.nova import analyze_hazard
+from common.nova import analyze_hazard, mock_mode_enabled
 
 
 def resize_image_bytes(data: bytes, max_edge: int = 1280) -> bytes:
@@ -48,6 +48,9 @@ def parse_xml_damage_classes(xml_path: str) -> set[str]:
 
 
 def main():
+    if mock_mode_enabled():
+        raise ValueError("RDD2022 evaluation requires real inference; local mocks cannot produce evaluation metrics")
+
     parser = argparse.ArgumentParser(description="Evaluate Nova hazard analysis against RDD2022 India dataset")
     parser.add_argument("--data-dir", default="eval/data/rdd2022_india", help="Path to RDD2022 India dataset")
     parser.add_argument("--out-dir", default="eval/results", help="Path to output results directory")

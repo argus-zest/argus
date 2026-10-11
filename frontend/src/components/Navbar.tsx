@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
 
-      <div className="h-16 px-5 flex items-center justify-between">
+      <div className="min-h-16 px-4 py-3 flex flex-col gap-3 items-center justify-between xl:h-16 xl:flex-row xl:px-5 xl:py-0">
         {/* Brand / Logo */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
@@ -50,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Status Pills */}
-          <div className="hidden md:flex items-center space-x-2 pl-2">
+          <div className="hidden xl:flex items-center space-x-2 pl-2">
             <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Radio className="w-3 h-3 mr-1 text-emerald-500 animate-pulse" />
               <span>Live Telemetry</span>
@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center space-x-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:flex xl:w-auto [&>button]:justify-center [&>button]:min-h-11">
           <button
             onClick={onOpenReport}
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-[#0c192c] hover:bg-[#162740] text-white shadow-xs transition active:scale-95"
