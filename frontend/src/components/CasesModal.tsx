@@ -437,7 +437,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                     className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#0c192c] hover:bg-[#162740] text-white transition flex items-center justify-center space-x-2 shadow-xs"
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span>{isClaiming ? 'Verifying with Nova 2 Lite...' : 'Verify Repair & Close Case'}</span>
+                    <span>{isClaiming ? 'Verifying with Nova Lite...' : 'Verify Repair & Close Case'}</span>
                   </button>
 
                   {claimResult && (

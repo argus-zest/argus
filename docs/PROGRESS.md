@@ -19,7 +19,7 @@ Passed: React 18 + Vite + Tailwind + MapLibre GL JS frontend, Sidebar controls, 
 Deferred: None
 
 Phase: Phase 4 — Vision + blame chain write APIs
-Passed: common/nova.py (Bedrock Converse wrapper, forced tool schema, JSON text fallback, retry with amazon.nova-2-lite-v1:0 fallback model, image > 3.5MB rejection), presign upload handler, analyze hazard handler, tender clause extraction handler; 100% passed in tests/test_phase4.py.
+Passed: common/nova.py (Bedrock Converse wrapper, forced tool schema, JSON text fallback, regional-only Amazon Nova Lite model with cross-Region override rejection, image > 3.5MB rejection), presign upload handler, analyze hazard handler, tender clause extraction handler; 100% passed in tests/test_phase4.py.
 Deferred: None
 
 Phase: Phase 5 — Case workflow
@@ -73,7 +73,7 @@ Deferred: None
   - *Evidence:* `statemachine/escalation.asl.json` defines all 7 required states: `NoticeAgent`, `SetTimeout`, `WaitForFix`, `MarkClosed`, `NextRung`, `IncrementRung`, `MarkUnresolved`. `sam validate --lint` passed with exit code 0.
 
 - [x] **README lists every AWS service used and where it appears in the demo.**
-  - *Evidence:* `README.md` Section 3 enumerates all 10 AWS services (Bedrock Nova 2 Lite, Step Functions, DynamoDB, SES, S3, EventBridge, API Gateway, Lambda, Location Service, Amplify Hosting) with explicit bullet points for each indicating where it appears in the demo video.
+  - *Evidence:* `README.md` Section 3 enumerates all 10 AWS services (Bedrock Nova Lite, Step Functions, DynamoDB, SES, S3, EventBridge, API Gateway, Lambda, Location Service, Amplify Hosting) with explicit bullet points for each indicating where it appears in the demo video.
 
 - [x] **CREDITS.md and AI_TOOLS.md exist and are complete.**
-  - *Evidence:* `CREDITS.md` credits Open-Meteo (CC BY 4.0), OpenStreetMap (ODbL 1.0), RDD2022 (CC BY-SA 4.0), MapLibre GL JS, React, Vite, and AWS. `AI_TOOLS.md` documents Google Antigravity and Amazon Bedrock Nova 2 Lite.
+  - *Evidence:* `CREDITS.md` credits Open-Meteo (CC BY 4.0), OpenStreetMap (ODbL 1.0), RDD2022 (CC BY-SA 4.0), MapLibre GL JS, React, Vite, and AWS. `AI_TOOLS.md` documents Google Antigravity and Amazon Bedrock Nova Lite.

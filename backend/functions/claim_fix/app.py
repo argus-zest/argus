@@ -9,17 +9,17 @@ from common.ddb import float_to_decimal, decimal_to_float
 
 
 def get_dynamodb():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.resource("dynamodb", region_name=region)
 
 
 def get_s3():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.client("s3", region_name=region)
 
 
 def get_sfn():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.client("stepfunctions", region_name=region)
 
 

@@ -32,13 +32,13 @@ Start URL: `http://localhost:5173/?demo=1` (or deployed AWS Amplify URL with `?d
 
 ---
 
-### Shot 3: Photo Reporting & Amazon Nova 2 Lite Inspection (40s – 1m 05s)
-- **Goal:** Upload a street hazard photo and show automated Bedrock Nova 2 Lite triage.
+### Shot 3: Photo Reporting & Amazon Nova Lite Inspection (40s – 1m 05s)
+- **Goal:** Upload a street hazard photo and show automated Bedrock Nova Lite triage.
 - **Action / Click Path:**
   1. In the Top Bar, click **"Report a hazard"** (or click **"Open case for this hotspot"** in the Right Panel).
   2. The Report Modal opens.
   3. Under Step 1, click file upload and select sample road hazard image (`pothole.jpg` or `manhole.jpg`).
-  4. Observe loading indicator: *"Uploading resized image to S3... Analyzing hazard with Amazon Nova 2 Lite..."*.
+  4. Observe loading indicator: *"Uploading resized image to S3... Analyzing hazard with Amazon Nova Lite..."*.
   5. The Nova Assessment card renders with:
      - Hazard type: `Pothole`
      - Severity: 4 out of 5 red dots
@@ -118,7 +118,7 @@ Start URL: `http://localhost:5173/?demo=1` (or deployed AWS Amplify URL with `?d
 - **Goal:** Prove serverless AWS implementation and honest empirical methodology.
 - **Action / Click Path:**
   1. In the Top Bar, click **"Architecture"**:
-     - Displays the interactive dual-pipeline SVG architecture diagram dividing **Predict** (EventBridge, Open-Meteo, S3, MapLibre) and **Enforce** (Bedrock Nova 2 Lite, Step Functions, SES, DynamoDB).
+     - Displays the interactive dual-pipeline SVG architecture diagram dividing **Predict** (EventBridge, Open-Meteo, S3, MapLibre) and **Enforce** (Bedrock Nova Lite, Step Functions, SES, DynamoDB).
   2. Close Architecture modal and click **"Model & evidence"**:
      - Tab 1: plain-text formulas with expert prior note.
      - Tab 2: RDD2022 accuracy metrics.

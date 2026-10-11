@@ -108,7 +108,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
               {/* Amazon Bedrock */}
               <rect x="730" y="260" width="190" height="52" rx="10" fill="#fff1f2" stroke="#e11d48" strokeWidth="2" />
               <text x="825" y="283" fill="#881337" fontSize="13" fontWeight="bold" textAnchor="middle">Amazon Bedrock</text>
-              <text x="825" y="300" fill="#be123c" fontSize="10" textAnchor="middle">Amazon Nova 2 Lite (Converse)</text>
+              <text x="825" y="300" fill="#be123c" fontSize="10" textAnchor="middle">Amazon Nova Lite (Converse)</text>
 
               <path d="M 700 286 L 730 286" stroke="#e11d48" strokeWidth="1.5" markerEnd="url(#arrow)" />
 
@@ -148,7 +148,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
             </div>
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
               <span className="font-bold text-rose-700 text-sm block mb-1">Enforce Pipeline</span>
-              Citizen reports are vision-inspected by Amazon Nova 2 Lite, resolved against official road records, and tracked through a 4-rung Step Functions workflow with automated SES dry-run notices.
+              Citizen reports are vision-inspected by Amazon Nova Lite, resolved against official road records, and tracked through a 4-rung Step Functions workflow with automated SES dry-run notices.
             </div>
           </div>
         </div>

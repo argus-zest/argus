@@ -18,7 +18,7 @@ def get_dynamodb(profile: str, region: str):
 def main():
     parser = argparse.ArgumentParser(description="Reset demo data: delete seeded & demo_run cases, then re-seed")
     parser.add_argument("--profile", default="hackathon", help="AWS profile name")
-    parser.add_argument("--region", default="us-east-1", help="AWS region")
+    parser.add_argument("--region", default="ap-southeast-2", help="AWS region")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without deleting")
     args = parser.parse_args()
 

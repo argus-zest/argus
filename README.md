@@ -42,10 +42,10 @@ flowchart TD
 
     subgraph Enforce["Enforce Pipeline"]
         PresignLambda["presign Lambda\n(S3 PUT Presigned URLs)"]
-        AnalyzeLambda["analyze Lambda\n(Nova 2 Lite Inspection)"]
+        AnalyzeLambda["analyze Lambda\n(Nova Lite Inspection)"]
         CasesLambda["cases Lambda\n(CRUD & Escalation Init)"]
         ClaimFixLambda["claim_fix Lambda\n(TaskToken & Verification)"]
-        Nova["Amazon Bedrock\n(Amazon Nova 2 Lite)"]
+        Nova["Amazon Bedrock\n(Amazon Nova Lite)"]
         StepFunctions["AWS Step Functions\n4-Rung Escalation State Machine"]
         NoticeAgent["Strands Notice Agent Lambda\n(Bedrock Converse + Fallback)"]
         Ses["Amazon SES\n[DRY-RUN] Notice Delivery"]
@@ -93,7 +93,7 @@ flowchart TD
 
 ## 3. How AWS Services Are Used
 
-1. **Amazon Bedrock (Amazon Nova 2 Lite):**
+1. **Amazon Bedrock (Amazon Nova Lite):**
    - **Hazard Triage:** Visual inspection of citizen street photos using forced tool calling (`report_hazard`) to extract hazard type, severity (1-5), submerged state, confidence, and visual evidence.
    - **Verification Auditor:** Compares before/after repair photos for claimed fixes using `report_verification`.
    - **Contract Analysis:** Verbatim extraction of maintenance / defect-liability clauses from tender PDFs via Converse document blocks.
@@ -176,17 +176,17 @@ Visit `http://localhost:5173/?demo=1` to explore the app with seeded demo data a
 Deployment is automated via AWS SAM. Follow `docs/HUMAN_TODO.md` for account prerequisites.
 
 ```bash
-# 1. Configure AWS credentials (us-east-1, profile hackathon)
+# 1. Configure AWS credentials (ap-southeast-2, profile hackathon)
 aws configure --profile hackathon
 
 # 2. Deploy using the provided script
 ./scripts/deploy.sh
 
 # 3. Seed demo data into DynamoDB
-python scripts/seed_demo.py --profile hackathon --region us-east-1
+python scripts/seed_demo.py --profile hackathon --region ap-southeast-2
 
 # 4. Run smoke test against deployed API
-./scripts/smoke_test.sh "https://<api-id>.execute-api.us-east-1.amazonaws.com/v1"
+./scripts/smoke_test.sh "https://<api-id>.execute-api.ap-southeast-2.amazonaws.com/v1"
 ```
 
 ---
@@ -204,7 +204,7 @@ python scripts/seed_demo.py --profile hackathon --region us-east-1
 ## 7. AI Tools Used
 
 - **Google Antigravity:** AI-assisted agentic software engineering throughout system planning, coding, and verification.
-- **Amazon Bedrock (Amazon Nova 2 Lite):** Foundation model inference for vision inspection, verification, and contract extraction.
+- **Amazon Bedrock (Amazon Nova Lite):** Foundation model inference for vision inspection, verification, and contract extraction.
 - Details in [AI_TOOLS.md](AI_TOOLS.md).
 
 ---

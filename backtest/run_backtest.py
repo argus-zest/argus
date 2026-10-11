@@ -136,7 +136,7 @@ def main():
     bucket = os.environ.get("BUCKET")
     if bucket:
         try:
-            s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+            s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
             s3.put_object(
                 Bucket=bucket,
                 Key="eval/backtest.json",

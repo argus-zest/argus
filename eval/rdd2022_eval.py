@@ -128,7 +128,7 @@ def main():
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
-    model_id = os.environ.get("NOVA_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
+    model_id = os.environ.get("NOVA_MODEL_ID", "amazon.nova-lite-v1:0")
     run_at = datetime.now(timezone.utc).isoformat()
 
     results = {
@@ -158,7 +158,7 @@ def main():
     bucket = os.environ.get("BUCKET")
     if bucket:
         try:
-            s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+            s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
             s3.put_object(
                 Bucket=bucket,
                 Key="eval/rdd2022.json",

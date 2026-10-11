@@ -7,7 +7,7 @@ from common.data_loader import get_assets
 from common.ddb import decimal_to_float
 from common.http import ok, err
 
-dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
 
 
 def handler(event, context):

@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [ "$#" -lt 1 ]; then
   echo "Usage: $0 <ApiBaseUrl>"
-  echo "Example: $0 https://xxxx.execute-api.us-east-1.amazonaws.com/v1"
+  echo "Example: $0 https://xxxx.execute-api.ap-southeast-2.amazonaws.com/v1"
   exit 1
 fi
 

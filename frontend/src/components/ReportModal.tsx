@@ -262,7 +262,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <div>
               <h2 className="text-lg font-bold text-slate-900">Report Road Hazard</h2>
               <p className="text-xs text-slate-500">
-                Photo triage &bull; Amazon Nova 2 Lite verification &bull; Escalation initiation
+                Photo triage &bull; Amazon Nova Lite verification &bull; Escalation initiation
               </p>
             </div>
           </div>
@@ -313,7 +313,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             {isAnalyzing && (
               <div className="flex items-center space-x-2 text-xs font-medium text-amber-600">
                 <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                <span>Analyzing visual features with Amazon Nova 2 Lite...</span>
+                <span>Analyzing visual features with Amazon Nova Lite...</span>
               </div>
             )}
 
@@ -323,7 +323,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-sky-900 flex items-center space-x-1">
                     <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Nova 2 Lite Hazard Assessment</span>
+                    <span>Nova Lite Hazard Assessment</span>
                   </span>
                   <span className="text-xs font-mono font-bold text-sky-700 bg-sky-100/70 px-2 py-0.5 rounded-full">
                     {Math.round(analysis.confidence * 100)}% confidence

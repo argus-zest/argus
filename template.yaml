@@ -18,8 +18,9 @@ Parameters:
     Description: Verified SES email identity for receiving dry-run notices
   NovaModelId:
     Type: String
-    Default: 'global.amazon.nova-2-lite-v1:0'
-    Description: Amazon Bedrock Nova 2 Lite model ID
+    Default: 'amazon.nova-lite-v1:0'
+    AllowedValues: ['amazon.nova-lite-v1:0']
+    Description: Regional Amazon Bedrock Nova Lite model ID (in-Region inference only)
   EnableTomtom:
     Type: String
     Default: 'false'
@@ -86,7 +87,7 @@ Resources:
   StorageBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+      BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -190,7 +191,7 @@ Resources:
       Handler: app.handler
       Policies:
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       Events:
         RiskApi:
           Type: HttpApi
@@ -222,7 +223,7 @@ Resources:
       Handler: app.handler
       Policies:
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       Events:
         EvalResultsApi:
           Type: HttpApi
@@ -239,7 +240,7 @@ Resources:
       Timeout: 60
       Policies:
         - S3CrudPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       Events:
         HourlyScoreRule:
           Type: Schedule
@@ -253,7 +254,7 @@ Resources:
       Handler: app.lambda_handler
       Policies:
         - S3WritePolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
       Events:
         PresignApi:
           Type: HttpApi
@@ -270,14 +271,13 @@ Resources:
       ReservedConcurrentExecutions: 5
       Policies:
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
         - Statement:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
               Resource:
-                - !Sub 'arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0'
-                - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
+                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
       Events:
         AnalyzeApi:
           Type: HttpApi
@@ -294,14 +294,13 @@ Resources:
       ReservedConcurrentExecutions: 5
       Policies:
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
         - Statement:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
               Resource:
-                - !Sub 'arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0'
-                - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
+                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
       Events:
         TenderClauseApi:
           Type: HttpApi
@@ -357,7 +356,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref CaseEventsTable
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
         - Statement:
             - Effect: Allow
               Action:
@@ -368,8 +367,7 @@ Resources:
               Action:
                 - bedrock:InvokeModel
               Resource:
-                - !Sub 'arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0'
-                - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
+                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
       Events:
         ClaimFixApi:
           Type: HttpApi
@@ -412,18 +410,17 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref CaseEventsTable
         - S3ReadPolicy:
-            BucketName: !Sub 'argus-${AWS::AccountId}-us-east-1'
+            BucketName: !Sub 'argus-${AWS::AccountId}-ap-southeast-2'
         - Statement:
             - Effect: Allow
               Action:
                 - ses:SendEmail
-              Resource: !Sub 'arn:aws:ses:us-east-1:${AWS::AccountId}:identity/*'
+              Resource: !Sub 'arn:aws:ses:ap-southeast-2:${AWS::AccountId}:identity/*'
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
               Resource:
-                - !Sub 'arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0'
-                - 'arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0'
+                - 'arn:aws:bedrock:ap-southeast-2::foundation-model/amazon.nova-lite-v1:0'
 
   EscalationStateMachine:
     Type: AWS::Serverless::StateMachine

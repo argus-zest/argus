@@ -288,7 +288,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                       className="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 flex items-center justify-center space-x-1.5 transition"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                      <span>{extractingClause ? 'Extracting with Nova 2 Lite...' : 'Verify Clause with Amazon Nova'}</span>
+                      <span>{extractingClause ? 'Extracting with Nova Lite...' : 'Verify Clause with Amazon Nova'}</span>
                     </button>
 
                     {extractedClause && (

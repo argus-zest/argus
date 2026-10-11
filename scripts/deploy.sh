@@ -2,12 +2,12 @@
 set -euo pipefail
 
 PROFILE="${AWS_PROFILE:-hackathon}"
-REGION="${AWS_REGION:-us-east-1}"
+REGION="${AWS_REGION:-ap-southeast-2}"
 STACK_NAME="${STACK_NAME:-argus}"
 FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-http://localhost:5173}"
 SES_FROM="${SES_FROM:-noreply@example.com}"
 DRYRUN_INBOX="${DRYRUN_INBOX:-dryrun@example.com}"
-NOVA_MODEL_ID="${NOVA_MODEL_ID:-global.amazon.nova-2-lite-v1:0}"
+NOVA_MODEL_ID="${NOVA_MODEL_ID:-amazon.nova-lite-v1:0}"
 
 echo "=================================================="
 echo "  Deploying Argus via AWS SAM"

@@ -37,7 +37,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const pulseRadiusRef = useRef<number>(14);
   const pulseGrowingRef = useRef<boolean>(true);
 
-  const region = import.meta.env.VITE_AWS_REGION || 'us-east-1';
+  const region = import.meta.env.VITE_AWS_REGION || 'ap-southeast-2';
   const apiKey = import.meta.env.VITE_LOCATION_API_KEY;
 
   // Helper to build Hotspot GeoJSON features

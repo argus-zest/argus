@@ -297,7 +297,7 @@ paths:
 
   /analyze:
     post:
-      summary: Analyze road hazard photo with Bedrock Nova 2 Lite
+      summary: Analyze road hazard photo with Bedrock Nova Lite
       operationId: analyzeHazard
       security: []
       requestBody:

@@ -24,8 +24,8 @@ from importlib import import_module
 
 class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
     def setUp(self):
-        os.environ["AWS_REGION"] = "us-east-1"
-        os.environ["NOVA_MODEL_ID"] = "global.amazon.nova-2-lite-v1:0"
+        os.environ["AWS_REGION"] = "ap-southeast-2"
+        os.environ["NOVA_MODEL_ID"] = "amazon.nova-lite-v1:0"
         os.environ["BUCKET"] = "test-bucket"
 
     @patch("common.nova.get_bedrock_client")
@@ -100,45 +100,33 @@ class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
         self.assertEqual(res["confidence"], 0.72)
 
     @patch("common.nova.get_bedrock_client")
-    def test_retry_with_fallback_model_id(self, mock_get_client):
+    def test_model_region_error_does_not_retry_cross_region(self, mock_get_client):
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
 
-        # First call raises ValidationException, second call succeeds
         err_response = {"Error": {"Code": "ValidationException", "Message": "Model not supported in region"}}
-        mock_client.converse.side_effect = [
-            ClientError(err_response, "Converse"),
-            {
-                "output": {
-                    "message": {
-                        "content": [
-                            {
-                                "toolUse": {
-                                    "name": "report_hazard",
-                                    "input": {
-                                        "hazard_type": "waterlogging",
-                                        "severity": 2,
-                                        "submerged": True,
-                                        "confidence": 0.9,
-                                        "description": "Standing pool of water",
-                                        "visible_evidence": "Reflective surface across 2 lanes",
-                                    },
-                                }
-                            }
-                        ]
-                    }
-                }
-            },
-        ]
+        mock_client.converse.side_effect = ClientError(err_response, "Converse")
 
-        fake_img = b"\xff\xd8\xff\xe0" + b"\x00" * 50
-        res = analyze_hazard(fake_img, "jpeg")
+        with self.assertRaises(NovaError) as ctx:
+            converse(
+                messages=[{"role": "user", "content": [{"text": "test"}]}],
+                system="test",
+            )
 
-        self.assertEqual(res["hazard_type"], "waterlogging")
-        # Ensure converse was called twice, second time with fallback model
-        self.assertEqual(mock_client.converse.call_count, 2)
-        call_kwargs = mock_client.converse.call_args_list[1][1]
-        self.assertEqual(call_kwargs["modelId"], "amazon.nova-2-lite-v1:0")
+        self.assertEqual(ctx.exception.code, "ValidationException")
+        self.assertEqual(mock_client.converse.call_count, 1)
+        self.assertEqual(mock_client.converse.call_args.kwargs["modelId"], "amazon.nova-lite-v1:0")
+
+    @patch("common.nova.get_bedrock_client")
+    def test_cross_region_model_override_is_rejected(self, mock_get_client):
+        os.environ["NOVA_MODEL_ID"] = "global.amazon.nova-2-lite-v1:0"
+        with self.assertRaises(NovaError) as ctx:
+            converse(
+                messages=[{"role": "user", "content": [{"text": "test"}]}],
+                system="test",
+            )
+        self.assertEqual(ctx.exception.code, "REGION_POLICY")
+        mock_get_client.assert_not_called()
 
     def test_image_too_large_rejection(self):
         # 3.6 MB image

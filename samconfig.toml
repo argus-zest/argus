@@ -15,13 +15,13 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
-region = "us-east-1"
+region = "ap-southeast-2"
 profile = "hackathon"
 parameter_overrides = [
     "FrontendOrigin=\"http://localhost:5173\"",
     "SesFrom=\"noreply@example.com\"",
     "DryRunInbox=\"dryrun@example.com\"",
-    "NovaModelId=\"global.amazon.nova-2-lite-v1:0\"",
+    "NovaModelId=\"amazon.nova-lite-v1:0\"",
     "EnableTomtom=\"false\"",
     "TomtomApiKey=\"\""
 ]

@@ -8,7 +8,7 @@ import boto3
 from common.data_loader import get_hotspots, get_assets
 from common.risk import score_hotspot, hazard_under_water, get_model_params
 
-s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
 
 
 def fetch_open_meteo_rain() -> tuple[float, float]:

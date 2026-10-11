@@ -19,7 +19,7 @@ import backend.functions.claim_fix.app as claim_fix_app
 
 class TestPhase5Workflow(unittest.TestCase):
     def setUp(self):
-        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["AWS_REGION"] = "ap-southeast-2"
         os.environ["TABLE_CASES"] = "test-Cases"
         os.environ["TABLE_EVENTS"] = "test-CaseEvents"
         os.environ["BUCKET"] = "test-bucket"

@@ -5,7 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 from common.http import ok, err
 
-s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+s3_client = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "ap-southeast-2"))
 
 
 def _read_s3_json(bucket: str, key: str):

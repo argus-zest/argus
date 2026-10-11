@@ -30,10 +30,10 @@ flowchart TD
 
     subgraph Enforce["Enforce Pipeline"]
         PresignLambda["presign Lambda\n(S3 PUT Presigned URLs)"]
-        AnalyzeLambda["analyze Lambda\n(Nova 2 Lite Inspection)"]
+        AnalyzeLambda["analyze Lambda\n(Nova Lite Inspection)"]
         CasesLambda["cases Lambda\n(CRUD & Escalation Init)"]
         ClaimFixLambda["claim_fix Lambda\n(TaskToken & Verification)"]
-        Nova["Amazon Bedrock\n(Amazon Nova 2 Lite)"]
+        Nova["Amazon Bedrock\n(Amazon Nova Lite)"]
         StepFunctions["AWS Step Functions\n4-Rung Escalation State Machine"]
         NoticeAgent["Strands Notice Agent Lambda\n(Bedrock Converse + Fallback)"]
         Ses["Amazon SES\n[DRY-RUN] Notice Delivery"]
@@ -90,11 +90,11 @@ flowchart TD
 - **Real-Time Simulation:** In What-if mode, the browser dynamically computes response matrices with immediate debounce feedback.
 
 ### 2.2 Enforce Pipeline
-- **Image Triage & Hazard Extraction:** Photos uploaded directly to S3 via presigned PUTs are analyzed by Amazon Nova 2 Lite using forced tool-calling schemas.
+- **Image Triage & Hazard Extraction:** Photos uploaded directly to S3 via presigned PUTs are analyzed by Amazon Nova Lite using forced tool-calling schemas.
 - **Blame Chain & Warranty Tracking:** Deterministically resolves road ownership across NHAI, NDMC, PWD, DJB, and MCD based on road width, highway status, and asset type. Matches maintenance contracts to determine active defect-liability windows.
 - **4-Rung Escalation Flow:** An AWS Step Functions state machine governs notice progression:
   1. Rung 1: Executive Engineer / Project Director
   2. Rung 2: Nodal Officer / Superintending Engineer (with prior notice reference)
   3. Rung 3: Chief Engineer
   4. Rung 4: District Magistrate (Convene inter-agency task force for disputed/orphan roads)
-- **Closure Verification:** Fixes claimed with new photos are checked against distance constraints (< 25m) and visually inspected by Nova 2 Lite to confirm hazard removal before task tokens are resolved.
+- **Closure Verification:** Fixes claimed with new photos are checked against distance constraints (< 25m) and visually inspected by Nova Lite to confirm hazard removal before task tokens are resolved.

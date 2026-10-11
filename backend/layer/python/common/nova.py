@@ -6,6 +6,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 
+REGIONAL_MODEL_ID = "amazon.nova-lite-v1:0"
+
+
 class NovaError(Exception):
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -14,7 +17,7 @@ class NovaError(Exception):
 
 
 def get_bedrock_client():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.client("bedrock-runtime", region_name=region)
 
 
@@ -25,13 +28,18 @@ def converse(
     max_tokens: int = 800,
     temperature: float = 0.1,
 ) -> Dict[str, Any]:
-    client = get_bedrock_client()
-    primary_model = os.environ.get("NOVA_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
-    fallback_model = "amazon.nova-2-lite-v1:0"
+    primary_model = os.environ.get("NOVA_MODEL_ID", REGIONAL_MODEL_ID)
+    if primary_model != REGIONAL_MODEL_ID:
+        raise NovaError(
+            "REGION_POLICY",
+            f"NOVA_MODEL_ID must be {REGIONAL_MODEL_ID} for in-Region inference in ap-southeast-2",
+        )
 
+    client = get_bedrock_client()
     system_param = [{"text": system}] if isinstance(system, str) else system
 
     kwargs: Dict[str, Any] = {
+        "modelId": REGIONAL_MODEL_ID,
         "messages": messages,
         "system": system_param,
         "inferenceConfig": {
@@ -43,19 +51,9 @@ def converse(
         kwargs["toolConfig"] = tool_config
 
     try:
-        kwargs["modelId"] = primary_model
         return client.converse(**kwargs)
     except ClientError as e:
         err_code = e.response.get("Error", {}).get("Code", "")
-        if err_code in ["ValidationException", "AccessDeniedException", "ResourceNotFoundException"]:
-            # Retry once with fallback model
-            try:
-                kwargs["modelId"] = fallback_model
-                return client.converse(**kwargs)
-            except Exception as retry_err:
-                msg = str(retry_err)
-                code = getattr(retry_err, "response", {}).get("Error", {}).get("Code", "MODEL_ERROR")
-                raise NovaError(code, f"Bedrock Converse error after fallback: {msg}")
         raise NovaError(err_code or "MODEL_ERROR", str(e))
     except Exception as e:
         raise NovaError("MODEL_ERROR", str(e))

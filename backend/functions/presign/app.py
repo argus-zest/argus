@@ -6,7 +6,7 @@ from common.http import ok, err, parse_json
 
 
 def get_s3_client():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.client("s3", region_name=region)
 
 

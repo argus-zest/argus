@@ -30,7 +30,7 @@ Argus builds upon and integrates several open-source libraries, open datasets, a
 ### Cloud Services
 
 1. **Amazon Web Services (AWS)**
-   - **Amazon Bedrock:** Foundation model inference using Amazon Nova 2 Lite (`global.amazon.nova-2-lite-v1:0` / `amazon.nova-2-lite-v1:0`).
+   - **Amazon Bedrock:** Foundation model inference using Amazon Nova Lite (`amazon.nova-lite-v1:0`).
    - **Amazon Location Service:** Map style descriptors, tiles, and places geocoding.
    - **AWS Step Functions:** Standard workflow state machine orchestration.
    - **Amazon EventBridge:** Scheduled hourly risk scoring rule.

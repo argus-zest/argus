@@ -5,7 +5,7 @@ from common.ddb import float_to_decimal
 
 
 def get_dynamodb():
-    region = os.environ.get("AWS_REGION", "us-east-1")
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
     return boto3.resource("dynamodb", region_name=region)
 
 
