@@ -419,7 +419,7 @@ export const MapView: React.FC<MapViewProps> = ({
       ctx.clearRect(0, 0, width, height);
 
       if (streakCount > 0) {
-        ctx.strokeStyle = 'rgba(2, 132, 199, 0.35)'; // subtle azure rain streaks
+        ctx.strokeStyle = 'rgba(29, 78, 216, 0.70)'; // subtle azure rain streaks
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         for (let i = 0; i < drops.length; i++) {
