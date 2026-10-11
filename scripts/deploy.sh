@@ -4,7 +4,6 @@ set -euo pipefail
 PROFILE="${AWS_PROFILE:-hackathon}"
 REGION="${AWS_REGION:-ap-southeast-2}"
 STACK_NAME="${STACK_NAME:-argus}"
-FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-http://localhost:5173}"
 SES_FROM="${SES_FROM:-}"
 DRYRUN_INBOX="${DRYRUN_INBOX:-}"
 NOVA_MODEL_ID="${NOVA_MODEL_ID:-amazon.nova-lite-v1:0}"
@@ -52,7 +51,6 @@ sam deploy \
   --resolve-s3 \
   --no-fail-on-empty-changeset \
   --parameter-overrides \
-    FrontendOrigin="$FRONTEND_ORIGIN" \
     SesFrom="$SES_FROM" \
     DryRunInbox="$DRYRUN_INBOX" \
     NovaModelId="$NOVA_MODEL_ID"

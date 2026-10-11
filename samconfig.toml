@@ -18,7 +18,6 @@ resolve_s3 = true
 region = "ap-southeast-2"
 profile = "hackathon"
 parameter_overrides = [
-    "FrontendOrigin=\"http://localhost:5173\"",
     "NovaModelId=\"amazon.nova-lite-v1:0\"",
     "EnableTomtom=\"false\"",
     "TomtomApiKey=\"\""

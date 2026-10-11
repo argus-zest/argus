@@ -1,12 +1,20 @@
 import json
+import logging
 import os
 import re
+import time
 from typing import Any, Dict, List, Optional
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 
 REGIONAL_MODEL_ID = "amazon.nova-lite-v1:0"
+logger = logging.getLogger(__name__)
+DAILY_QUOTA_MESSAGE = (
+    "AI analysis is temporarily unavailable because the daily processing limit has been reached. "
+    "You can continue submitting your report manually."
+)
 
 
 class NovaError(Exception):
@@ -40,7 +48,13 @@ def get_bedrock_client():
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
     if region != "ap-southeast-2":
         raise NovaError("REGION_POLICY", "Bedrock inference must remain in ap-southeast-2")
-    return boto3.client("bedrock-runtime", region_name=region)
+    # Classify the service response before deciding whether a retry is safe.
+    # Bedrock's daily token cap also arrives as ThrottlingException, but is not transient.
+    return boto3.client(
+        "bedrock-runtime",
+        region_name=region,
+        config=Config(retries={"total_max_attempts": 1, "mode": "standard"}),
+    )
 
 
 def converse(
@@ -74,13 +88,35 @@ def converse(
     if tool_config:
         kwargs["toolConfig"] = tool_config
 
-    try:
-        return client.converse(**kwargs)
-    except ClientError as e:
-        err_code = e.response.get("Error", {}).get("Code", "")
-        raise NovaError(err_code or "MODEL_ERROR", str(e))
-    except Exception as e:
-        raise NovaError("MODEL_ERROR", str(e))
+    for attempt in range(2):
+        try:
+            return client.converse(**kwargs)
+        except ClientError as e:
+            error = e.response.get("Error", {})
+            err_code = str(error.get("Code", "MODEL_ERROR"))
+            err_message = str(error.get("Message", ""))
+            request_id = e.response.get("ResponseMetadata", {}).get("RequestId", "unknown")
+            if err_code == "ThrottlingException":
+                if "token" in err_message.lower() and any(
+                    marker in err_message.lower() for marker in ("per day", "daily", "tokens/day")
+                ):
+                    logger.warning("Bedrock daily token quota exhausted request_id=%s", request_id)
+                    raise NovaError("DAILY_QUOTA_EXHAUSTED", DAILY_QUOTA_MESSAGE) from None
+                if attempt == 0:
+                    logger.info("Bedrock transient throttle; retrying once request_id=%s", request_id)
+                    time.sleep(0.25)
+                    continue
+                logger.warning("Bedrock transient throttling persisted request_id=%s", request_id)
+                raise NovaError(
+                    "TRANSIENT_THROTTLING",
+                    "AI analysis is temporarily busy. You can continue submitting your report manually.",
+                ) from None
+            logger.warning("Bedrock Converse failed code=%s request_id=%s", err_code, request_id)
+            raise NovaError(err_code, "AI inference is temporarily unavailable.") from None
+        except Exception as e:
+            logger.warning("Bedrock Converse failed type=%s", type(e).__name__)
+            raise NovaError("MODEL_ERROR", "AI inference is temporarily unavailable.") from None
+    raise NovaError("TRANSIENT_THROTTLING", "AI inference is temporarily busy.")
 
 
 def _extract_tool_or_json(response: Dict[str, Any], tool_name: str) -> Optional[Dict[str, Any]]:
@@ -195,51 +231,56 @@ def analyze_hazard(image_bytes: bytes, fmt: str) -> Dict[str, Any]:
     try:
         resp = converse(messages=messages, system=system_prompt, tool_config=tool_config)
         parsed = _extract_tool_or_json(resp, "report_hazard")
-        if parsed:
-            # Clamp and validate fields
-            h_type = str(parsed.get("hazard_type", "unclear"))
-            if h_type not in ["pothole", "open_manhole", "missing_drain_cover", "waterlogging", "none", "unclear"]:
-                h_type = "unclear"
-            sev = int(parsed.get("severity", 0))
-            if h_type == "none":
-                sev = 0
-            sev = max(0, min(5, sev))
-            sub = bool(parsed.get("submerged", False))
-            conf = float(parsed.get("confidence", 0.0))
-            conf = max(0.0, min(1.0, conf))
-            desc = str(parsed.get("description", ""))[:200]
-            vis = str(parsed.get("visible_evidence", ""))[:200]
-
-            return {
-                "hazard_type": h_type,
-                "severity": sev,
-                "submerged": sub,
-                "confidence": round(conf, 4),
-                "description": desc,
-                "visible_evidence": vis,
-            }
+        if not _valid_hazard_response(parsed):
+            logger.warning("Bedrock returned incomplete hazard assessment")
+            raise NovaError("MALFORMED_MODEL_RESPONSE", "AI analysis returned an incomplete assessment.")
+        h_type = parsed["hazard_type"]
+        severity = 0 if h_type == "none" else parsed["severity"]
+        return {
+            "hazard_type": h_type,
+            "severity": severity,
+            "submerged": parsed["submerged"],
+            "confidence": round(parsed["confidence"], 4),
+            "description": parsed["description"][:200],
+            "visible_evidence": parsed["visible_evidence"][:200],
+            "source": "bedrock",
+        }
     except NovaError:
         raise
     except Exception:
         pass
 
-    return {
-        "hazard_type": "unclear",
-        "severity": 0,
-        "submerged": False,
-        "confidence": 0.0,
-        "description": "Could not identify hazard",
-        "visible_evidence": "Unclear image",
-    }
+    raise NovaError("MALFORMED_MODEL_RESPONSE", "AI analysis returned an incomplete assessment.")
+
+
+def _valid_hazard_response(parsed: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(parsed, dict):
+        return False
+    return (
+        parsed.get("hazard_type") in {"pothole", "open_manhole", "missing_drain_cover", "waterlogging", "none", "unclear"}
+        and isinstance(parsed.get("severity"), int)
+        and not isinstance(parsed.get("severity"), bool)
+        and 0 <= parsed["severity"] <= 5
+        and isinstance(parsed.get("submerged"), bool)
+        and isinstance(parsed.get("confidence"), (int, float))
+        and not isinstance(parsed.get("confidence"), bool)
+        and 0 <= parsed["confidence"] <= 1
+        and isinstance(parsed.get("description"), str)
+        and isinstance(parsed.get("visible_evidence"), str)
+    )
 
 
 def verify_fix(
     before_bytes: Optional[bytes],
     after_bytes: bytes,
     hazard_type: str,
+    before_format: str = "jpeg",
+    after_format: str = "jpeg",
 ) -> Dict[str, Any]:
     if len(after_bytes) > 3.5 * 1024 * 1024:
         raise NovaError("IMAGE_TOO_LARGE", "Repaired image exceeds maximum allowed size of 3.5 MB")
+    if before_bytes is not None and len(before_bytes) > 3.5 * 1024 * 1024:
+        raise NovaError("IMAGE_TOO_LARGE", "Original image exceeds maximum allowed size of 3.5 MB")
 
     if mock_mode_enabled():
         return {
@@ -285,14 +326,14 @@ def verify_fix(
     if before_bytes:
         user_content.extend([
             {"text": "Before repair image:"},
-            {"image": {"format": "jpeg", "source": {"bytes": before_bytes}}},
+            {"image": {"format": before_format.lower().replace("jpg", "jpeg"), "source": {"bytes": before_bytes}}},
         ])
     else:
         user_content.append({"text": "No before photo is available for comparison."})
 
     user_content.extend([
         {"text": "After repair image:"},
-        {"image": {"format": "jpeg", "source": {"bytes": after_bytes}}},
+        {"image": {"format": after_format.lower().replace("jpg", "jpeg"), "source": {"bytes": after_bytes}}},
         {"text": "Verify if the hazard is resolved."},
     ])
 
@@ -301,33 +342,36 @@ def verify_fix(
     try:
         resp = converse(messages=messages, system=system_prompt, tool_config=tool_config)
         parsed = _extract_tool_or_json(resp, "report_verification")
-        if parsed:
-            still_present = bool(parsed.get("hazard_still_present", True))
-            same_loc = parsed.get("same_location_plausible")
-            if before_bytes is None:
-                same_loc = None
-            elif same_loc is not None:
-                same_loc = bool(same_loc)
-
-            conf = float(parsed.get("confidence", 0.0))
-            expl = str(parsed.get("explanation", ""))[:200]
-            return {
-                "hazard_still_present": still_present,
-                "same_location_plausible": same_loc,
-                "confidence": round(max(0.0, min(1.0, conf)), 4),
-                "explanation": expl,
-            }
+        if not _valid_verification_response(parsed, before_bytes is not None):
+            logger.warning("Bedrock returned incomplete repair verification")
+            raise NovaError("MALFORMED_MODEL_RESPONSE", "AI repair verification returned an incomplete result.")
+        return {
+            "hazard_still_present": parsed["hazard_still_present"],
+            "same_location_plausible": parsed.get("same_location_plausible") if before_bytes else None,
+            "confidence": round(parsed["confidence"], 4),
+            "explanation": parsed["explanation"][:200],
+            "source": "bedrock",
+        }
     except NovaError:
         raise
     except Exception:
         pass
 
-    return {
-        "hazard_still_present": True,
-        "same_location_plausible": None if before_bytes is None else False,
-        "confidence": 0.0,
-        "explanation": "Could not verify repair photo.",
-    }
+    raise NovaError("MALFORMED_MODEL_RESPONSE", "AI repair verification returned an incomplete result.")
+
+
+def _valid_verification_response(parsed: Optional[Dict[str, Any]], compare_location: bool) -> bool:
+    if not isinstance(parsed, dict):
+        return False
+    same_location = parsed.get("same_location_plausible")
+    return (
+        isinstance(parsed.get("hazard_still_present"), bool)
+        and isinstance(parsed.get("confidence"), (int, float))
+        and not isinstance(parsed.get("confidence"), bool)
+        and 0 <= parsed["confidence"] <= 1
+        and isinstance(parsed.get("explanation"), str)
+        and (not compare_location or isinstance(same_location, bool))
+    )
 
 
 def extract_clause(pdf_bytes: bytes, doc_name: str) -> Dict[str, Any]:

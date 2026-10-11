@@ -1,11 +1,14 @@
 import json
+import logging
 import os
 from datetime import datetime, timezone
 import boto3
 from common.http import ok, err, parse_json
 from common.geo import haversine
-from common.nova import verify_fix
+from common.nova import verify_fix, NovaError
 from common.ddb import float_to_decimal, decimal_to_float
+
+logger = logging.getLogger(__name__)
 
 
 def get_dynamodb():
@@ -106,22 +109,39 @@ def handler(event, context):
         s3 = get_s3()
         bucket = os.environ.get("BUCKET", "argus-uploads")
 
-        before_bytes = None
         before_key = case_data.get("photo_key")
-        if before_key:
-            try:
-                resp = s3.get_object(Bucket=bucket, Key=before_key)
-                before_bytes = resp["Body"].read()
-            except Exception:
-                before_bytes = None
+        if not before_key:
+            return err(409, "MISSING_BEFORE_PHOTO", "Repair verification requires the original report photo.")
+        try:
+            resp = s3.get_object(Bucket=bucket, Key=before_key)
+            before_bytes = resp["Body"].read()
+        except Exception:
+            logger.warning("Original report photo unavailable for case_id=%s", case_id)
+            return err(409, "MISSING_BEFORE_PHOTO", "The original report photo is unavailable; the repair claim remains pending.")
 
-        after_resp = s3.get_object(Bucket=bucket, Key=s3_key)
-        after_bytes = after_resp["Body"].read()
+        try:
+            after_resp = s3.get_object(Bucket=bucket, Key=s3_key)
+            after_bytes = after_resp["Body"].read()
+        except Exception:
+            return err(404, "MISSING_AFTER_PHOTO", "The submitted repair photo could not be retrieved.")
 
         analysis = case_data.get("analysis") or {}
         hazard_type = analysis.get("hazard_type", "pothole")
 
-        verification = verify_fix(before_bytes, after_bytes, hazard_type)
+        try:
+            before_format = "png" if before_key.lower().endswith(".png") else "jpeg"
+            after_format = "png" if s3_key.lower().endswith(".png") else "jpeg"
+            verification = verify_fix(
+                before_bytes, after_bytes, hazard_type,
+                before_format=before_format, after_format=after_format,
+            )
+        except NovaError as model_error:
+            logger.warning("Repair verification unavailable code=%s case_id=%s", model_error.code, case_id)
+            if model_error.code == "DAILY_QUOTA_EXHAUSTED":
+                return err(503, "AI_QUOTA_EXHAUSTED", model_error.message)
+            if model_error.code == "TRANSIENT_THROTTLING":
+                return err(503, "AI_TEMPORARILY_UNAVAILABLE", model_error.message)
+            return err(503, "AI_VERIFICATION_UNAVAILABLE", "AI repair verification is unavailable. The claim remains pending and the case is unchanged.")
 
         # Step 4: Verification criteria
         hazard_still_present = verification.get("hazard_still_present", True)

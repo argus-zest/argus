@@ -14,5 +14,5 @@ Follow these steps in order to complete cloud configuration and live deployment:
 - [ ] 8. Place ~50 RDD2022 India images + XML in `eval/data/rdd2022_india/`; run `python eval/rdd2022_eval.py`. Optional but recommended.
 - [ ] 9. Replace the placeholder in `backtest/events.json` with 3–5 real rain-day events from news (include source URLs; set `held_out` honestly); run `python backtest/run_backtest.py`.
 - [ ] 10. Review `backend/layer/python/civic_data/hotspots_geocoded.json` against the map, copy verified coordinates into `hotspots.json`, set `coord_verified: true` where confirmed, and correct any road attributes, then redeploy.
-- [ ] 11. Build the frontend, zip `dist`, and drag it into a new Amplify Hosting manual deployment; add the Amplify domain to the Location API key referrers and to the `FrontendOrigin` parameter (redeploy the backend).
+- [ ] 11. Build the frontend and upload `dist` to Amplify Hosting; add the Amplify domain to the Location API key referrers. API Gateway and evidence-bucket CORS in `template.yaml` explicitly allow the deployed Amplify origin and localhost:5173.
 - [ ] 12. Record the video from `?demo=1` following `docs/VIDEO_SHOTLIST.md`; show Amplify URL, Bedrock, Step Functions execution graph, DynamoDB, EventBridge tabs; upload to YouTube; confirm it opens signed-out.

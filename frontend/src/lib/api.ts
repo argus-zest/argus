@@ -157,7 +157,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     fetchCaseDetails: (caseId: string) => request<CaseDetails>('getCase', `/cases/${encodeURIComponent(caseId)}`),
     claimFix: async (caseId: string, s3Key: string, lat: number, lng: number): Promise<ClaimFixResponse> => {
       const result = await request<ClaimFixResponse>('claimFix', `/cases/${encodeURIComponent(caseId)}/claim-fix`, { s3_key: s3Key, lat, lng });
-      return { ...result, explanation: result.verification.explanation };
+      return { ...result, explanation: result.verification?.explanation };
     },
     extractTenderClause: (docKey: string) => request<ClauseResponse>('extractTenderClause', '/tender/clause', { doc_key: docKey }),
     fetchEvalResults: async (): Promise<EvalResultsResponse> => {

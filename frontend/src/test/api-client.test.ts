@@ -26,6 +26,15 @@ describe('restored API client', () => {
     await expect(offline.fetchHotspots()).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
   });
 
+  it('accepts a null verification for deterministic prechecks without dereferencing it', async () => {
+    const client = createApiClient({ fetch: async () => json({
+      accepted: false, reason: 'TOO_FAR', distance_m: 27.2, verification: null,
+    }) });
+    await expect(client.claimFix('CS-ABC123', 'uploads/fix.jpg', 28, 77)).resolves.toMatchObject({
+      accepted: false, reason: 'TOO_FAR', verification: null,
+    });
+  });
+
   it('permits explicitly marked local read fixtures and refuses writes', async () => {
     const client = createApiClient({ development: true, useMocks: true });
     expect((await client.fetchHotspots()).mock).toBe(true);

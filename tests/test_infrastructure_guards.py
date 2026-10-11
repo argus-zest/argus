@@ -140,22 +140,17 @@ def test_workflow_role_only_invokes_its_three_functions_and_has_a_source_boundar
     ]
 
 
-def test_cors_origins_remain_unique_when_deployment_uses_localhost():
+def test_api_and_bucket_cors_allow_exact_local_and_amplify_origins_once():
     template = load_template()
-    condition = template['Conditions']['HasAdditionalFrontendOrigin']
-    assert condition == {'Not': [{'Equals': [
-        {'Ref': 'FrontendOrigin'}, 'http://localhost:5173',
-    ]}]}
     resources = template['Resources']
     api = resources['HttpApi']['Properties']['CorsConfiguration']['AllowOrigins']
     bucket = resources['StorageBucket']['Properties']['CorsConfiguration']['CorsRules'][0]['AllowedOrigins']
-    assert api == bucket
-    for frontend in ['http://localhost:5173', 'https://demo.example.org']:
-        origins = [frontend]
-        optional = api[1]['If']
-        assert optional == ['HasAdditionalFrontendOrigin', 'http://localhost:5173',
-                            {'Ref': 'AWS::NoValue'}]
-        if frontend != 'http://localhost:5173':
-            origins.append(optional[1])
-        assert len(origins) == len(set(origins))
-        assert frontend in origins and 'http://localhost:5173' in origins
+    expected = [
+        'http://localhost:5173',
+        'https://demo.d1ygq6l84twsei.amplifyapp.com',
+    ]
+    assert api == expected
+    assert bucket == expected
+    assert len(api) == len(set(api))
+    assert len(bucket) == len(set(bucket))
+    assert 'FrontendOrigin' not in template['Parameters']

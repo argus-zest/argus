@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.abspath("backend/functions/sfn_notice_agent"))
 
 from common.notice_template import build_notice, get_recipient_role
 from common.geo import haversine
+from common.nova import NovaError
 import backend.functions.claim_fix.app as claim_fix_app
 
 
@@ -88,7 +89,7 @@ class TestPhase5Workflow(unittest.TestCase):
         # 3. Location + OSM URL
         self.assertIn("https://www.openstreetmap.org/?mlat=28.633&mlon=77.22#map=18/28.633/77.22", lines[2])
         # 4. Hazard type, severity, submerged
-        self.assertIn("Hazard: pothole (Severity: 4/5, Submerged: Yes)", lines[3])
+        self.assertIn("Hazard: pothole (Recorded severity: 4/5, Submerged: Yes)", lines[3])
         # 5. Presigned photo link
         self.assertIn("Photo Evidence: https://s3.amazonaws.com/photo.jpg", lines[4])
         # 6. Owner agency + officer role + confidence
@@ -182,6 +183,7 @@ class TestPhase5Workflow(unittest.TestCase):
                 "lng": 77.2200,
                 "status": "AWAITING_FIX",
                 "rung": 1,
+                "photo_key": "uploads/original.jpg",
                 "current_task_token": "token-123",
             }
         }
@@ -239,6 +241,33 @@ class TestPhase5Workflow(unittest.TestCase):
         body4 = json.loads(res4["body"])
         self.assertFalse(body4["accepted"])
         self.assertEqual(body4["reason"], "LOW_CONFIDENCE")
+
+    @patch("backend.functions.claim_fix.app.verify_fix", side_effect=NovaError(
+        "DAILY_QUOTA_EXHAUSTED", "AI analysis is temporarily unavailable because the daily processing limit has been reached."
+    ))
+    @patch("backend.functions.claim_fix.app.get_s3")
+    @patch("backend.functions.claim_fix.app.get_dynamodb")
+    def test_unavailable_verification_leaves_claim_pending(self, mock_ddb, mock_s3, _mock_verify):
+        mock_cases = MagicMock()
+        mock_events = MagicMock()
+        mock_ddb.return_value.Table.side_effect = lambda name: mock_cases if "Cases" in name else mock_events
+        mock_cases.get_item.return_value = {"Item": {
+            "case_id": "CS-PENDING", "lat": 28.633, "lng": 77.22,
+            "status": "AWAITING_FIX", "rung": 1, "photo_key": "uploads/original.jpg",
+        }}
+        mock_s3.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"photo")}
+        event = {"pathParameters": {"case_id": "CS-PENDING"}, "body": json.dumps({
+            "s3_key": "uploads/repair.jpg", "lat": 28.633, "lng": 77.22,
+        })}
+        response = claim_fix_app.handler(event, None)
+        self.assertEqual(response["statusCode"], 503)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "AI_QUOTA_EXHAUSTED")
+        mock_cases.update_item.assert_not_called()
+        mock_events.put_item.assert_not_called()
+
+    def test_notice_does_not_invent_severity_without_analysis(self):
+        notice = build_notice({"case_id": "CS-NO-AI", "lat": 28.6, "lng": 77.2, "photo_key": "uploads/original.jpg"}, rung=1, kind="initial")
+        self.assertIn("AI analysis unavailable; no severity assessment is recorded.", notice["body"])
 
 
 if __name__ == "__main__":

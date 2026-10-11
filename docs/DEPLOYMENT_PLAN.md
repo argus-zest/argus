@@ -8,7 +8,7 @@ Status: prepared locally; deployment is not approved. No stack, change set, reso
 
 - AWS project: `262952461520`; role `AccountFullAccessRole`. User-verified hackathon identity matches refreshed MCP STS. The hackathon CLI independently confirmed the same project and role at the connectivity checkpoint.
 - CLI profile `hackathon`, Region `ap-southeast-2`, stack `argus`.
-- `FrontendOrigin=http://localhost:5173`.
+- API and S3 CORS allow exactly `http://localhost:5173` and `https://demo.d1ygq6l84twsei.amplifyapp.com`.
 - `SesFrom=chauhanansh1046@gmail.com`, `DryRunInbox=chauhanansh1046@gmail.com`: both selected by the user, identity verified through SES in Sydney. SES remains in sandbox. Preserve dry-run routing; no external recipient tests are authorized.
 - `NovaModelId=amazon.nova-lite-v1:0`: active, on-demand regional model with text/image/video input and text output. Invoke permission and application runtime acceptance remain untested. No global inference profile or cross-Region fallback.
 - Optional `EnableTomtom=false`, `TomtomApiKey` empty. Production `USE_MOCKS=false`.

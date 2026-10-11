@@ -173,6 +173,8 @@ export const App: React.FC = () => {
         onOpenCases={() => setIsCasesOpen(true)}
         onOpenEvidence={() => setIsEvidenceOpen(true)}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
+        isRightPanelOpen={isRightPanelOpen}
+        onOpenRightPanel={() => setIsRightPanelOpen(true)}
       />
 
       {MOCK_MODE && (

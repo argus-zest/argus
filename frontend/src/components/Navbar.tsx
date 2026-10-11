@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, MapPin, Layers, FileText, Activity, Radio } from 'lucide-react';
+import { ShieldCheck, MapPin, Layers, FileText, Activity, Radio, PanelRightOpen } from 'lucide-react';
 
 interface NavbarProps {
   isDemoMode: boolean;
@@ -7,6 +7,8 @@ interface NavbarProps {
   onOpenCases: () => void;
   onOpenEvidence: () => void;
   onOpenArchitecture: () => void;
+  isRightPanelOpen: boolean;
+  onOpenRightPanel: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -15,6 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCases,
   onOpenEvidence,
   onOpenArchitecture,
+  isRightPanelOpen,
+  onOpenRightPanel,
 }) => {
   return (
     <header className="flex flex-col bg-white border-b border-slate-200/90 select-none z-30 shadow-xs">
@@ -64,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:flex xl:w-auto [&>button]:justify-center [&>button]:min-h-11">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full xl:flex xl:w-auto [&>button]:justify-center [&>button]:min-h-11">
           <button
             onClick={onOpenReport}
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-[#0c192c] hover:bg-[#162740] text-white shadow-xs transition active:scale-95"
@@ -96,6 +100,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Layers className="w-4 h-4 text-slate-500" />
             <span>Architecture</span>
           </button>
+          {!isRightPanelOpen && (
+            <button
+              type="button"
+              onClick={onOpenRightPanel}
+              aria-label="Open hotspot details panel"
+              title="Open hotspot details panel"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition"
+            >
+              <PanelRightOpen className="w-4 h-4 text-slate-500" aria-hidden="true" />
+              <span>Details</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

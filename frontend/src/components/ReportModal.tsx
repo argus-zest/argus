@@ -39,6 +39,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<HazardAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Location selection: 'hotspot' | 'geolocation' | 'picked'
   const [locationType, setLocationType] = useState<'hotspot' | 'geolocation' | 'picked'>('hotspot');
@@ -94,6 +95,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     if (!file) return;
 
     setSelectedFile(file);
+    setAnalysis(null);
+    setAnalysisError(null);
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl(localUrl);
 
@@ -108,9 +111,6 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       setIsUploading(false);
 
       setIsAnalyzing(true);
-      const anaResult = await analyzeHazard(presign.s3_key);
-      setAnalysis(anaResult.analysis);
-
       let currentLat = customLat;
       let currentLng = customLng;
       if (locationType === 'hotspot') {
@@ -120,7 +120,18 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           currentLng = hs.lng;
         }
       }
-      handleResolve(currentLat, currentLng, anaResult.analysis.hazard_type);
+      try {
+        const anaResult = await analyzeHazard(presign.s3_key);
+        setAnalysis(anaResult.analysis);
+        handleResolve(currentLat, currentLng, anaResult.analysis.hazard_type);
+      } catch (analysisErr: any) {
+        // The upload succeeded; retain the S3 key and photo preview for manual submission.
+        console.warn('Photo analysis unavailable; uploaded evidence remains attached.');
+        setAnalysisError(analysisErr?.code === 'DAILY_QUOTA_EXHAUSTED'
+          ? 'AI analysis is temporarily unavailable because the daily processing limit has been reached. You can continue submitting your report manually.'
+          : 'AI analysis is unavailable. Your uploaded photo is preserved, and you can continue submitting your report manually.');
+        handleResolve(currentLat, currentLng, null);
+      }
     } catch (err: any) {
       console.error('Upload / analyze error:', err);
       setSubmitError(err.message || 'Error uploading or analyzing photo');
@@ -223,14 +234,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
         lng,
         asset_type: ['pothole', 'open_manhole', 'missing_drain_cover'].includes(analysis?.hazard_type || '')
           ? analysis?.hazard_type as AssetType : undefined,
-        analysis: analysis || {
-          hazard_type: 'unclear',
-          severity: 3,
-          submerged: false,
-          confidence: 0.5,
-          description: 'Citizen reported hazard (photo omitted or manual override)',
-          visible_evidence: 'Manual citizen report',
-        },
+        ...(analysis ? { analysis } : {}),
         photo_key: photoKey || undefined,
         timer_profile: timerProfile,
       };
@@ -314,6 +318,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               </div>
             )}
 
+            {analysisError && (
+              <div role="status" className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <div className="font-bold">AI analysis unavailable</div>
+                <p className="mt-1">{analysisError}</p>
+              </div>
+            )}
+
             {/* Analysis Card */}
             {analysis && (
               <div className="p-4 rounded-2xl bg-sky-50/40 border border-sky-200/80 space-y-3">
@@ -350,7 +361,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
                 {/* Severity Dots */}
                 <div className="flex items-center space-x-2 text-xs">
-                  <span className="text-slate-500">Severity:</span>
+                  <span className="text-slate-500">AI-estimated severity:</span>
                   <div className="flex items-center space-x-1.5">
                     {[1, 2, 3, 4, 5].map((dot) => (
                       <span

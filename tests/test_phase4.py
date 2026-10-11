@@ -65,6 +65,7 @@ class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
         self.assertTrue(res["submerged"])
         self.assertEqual(res["confidence"], 0.85)
         self.assertEqual(res["description"], "Dangerous open manhole submerged in water")
+        self.assertEqual(res["source"], "bedrock")
 
     @patch("common.nova.get_bedrock_client")
     def test_json_text_fallback(self, mock_get_client):
@@ -128,6 +129,31 @@ class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "REGION_POLICY")
         mock_get_client.assert_not_called()
 
+    @patch("common.nova.get_bedrock_client")
+    def test_daily_token_quota_is_not_retried_and_is_classified(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.converse.side_effect = ClientError(
+            {"Error": {"Code": "ThrottlingException", "Message": "Too many tokens per day"}},
+            "Converse",
+        )
+        with self.assertRaises(NovaError) as ctx:
+            converse(messages=[{"role": "user", "content": [{"text": "test"}]}], system="test")
+        self.assertEqual(ctx.exception.code, "DAILY_QUOTA_EXHAUSTED")
+        self.assertIn("daily processing limit", ctx.exception.message)
+        self.assertEqual(mock_client.converse.call_count, 1)
+
+    @patch("common.nova.get_bedrock_client")
+    def test_transient_throttle_is_distinct_and_retried_once(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.converse.side_effect = [
+            ClientError({"Error": {"Code": "ThrottlingException", "Message": "Rate exceeded"}}, "Converse"),
+            {"output": {"message": {"content": [{"text": "ok"}]}}},
+        ]
+        self.assertEqual(converse(messages=[], system="test")["output"]["message"]["content"][0]["text"], "ok")
+        self.assertEqual(mock_client.converse.call_count, 2)
+
     def test_image_too_large_rejection(self):
         # 3.6 MB image
         huge_img = b"0" * int(3.6 * 1024 * 1024)
@@ -166,6 +192,19 @@ class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
         self.assertFalse(res["hazard_still_present"])
         self.assertIsNone(res["same_location_plausible"])  # must be null when before_bytes is None
         self.assertEqual(res["confidence"], 0.88)
+
+    @patch("common.nova.get_bedrock_client")
+    def test_malformed_hazard_and_repair_responses_are_unavailable(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.converse.return_value = {"output": {"message": {"content": [{"text": "unclear"}]}}}
+        with self.assertRaises(NovaError) as analysis_error:
+            analyze_hazard(b"image", "jpeg")
+        self.assertEqual(analysis_error.exception.code, "MALFORMED_MODEL_RESPONSE")
+
+        with self.assertRaises(NovaError) as verification_error:
+            verify_fix(b"before", b"after", "pothole")
+        self.assertEqual(verification_error.exception.code, "MALFORMED_MODEL_RESPONSE")
 
     @patch("common.nova.get_bedrock_client")
     def test_extract_clause(self, mock_get_client):
@@ -309,6 +348,21 @@ class TestPhase4NovaAndWriteAPIs(unittest.TestCase):
         body = json.loads(resp["body"])
         self.assertEqual(body["analysis"]["hazard_type"], "pothole")
         self.assertEqual(body["analysis"]["severity"], 4)
+
+    @patch("backend.functions.analyze.app.analyze_hazard", side_effect=NovaError(
+        "DAILY_QUOTA_EXHAUSTED",
+        "AI analysis is temporarily unavailable because the daily processing limit has been reached. You can continue submitting your report manually.",
+    ))
+    @patch("backend.functions.analyze.app.get_s3_client")
+    def test_analyze_handler_returns_friendly_quota_error(self, mock_s3, _mock_analyze):
+        mock_s3.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"image")}
+        from backend.functions.analyze.app import lambda_handler as analyze_handler
+        response = analyze_handler({"body": json.dumps({"s3_key": "uploads/photo.jpg"})}, None)
+        self.assertEqual(response["statusCode"], 503)
+        body = json.loads(response["body"])
+        self.assertEqual(body["error"]["code"], "DAILY_QUOTA_EXHAUSTED")
+        self.assertIn("continue submitting", body["error"]["message"])
+        self.assertNotIn("ThrottlingException", body["error"]["message"])
 
 
 if __name__ == "__main__":

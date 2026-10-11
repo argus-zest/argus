@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Hotspot, GroundAsset, RiskScore } from '../lib/types';
 import { getBandColor, getHazardColor } from '../lib/api';
+import { MAP_MAX_ZOOM, OSM_TILE_MAX_ZOOM } from '../lib/map-config';
 import { Eye, EyeOff, MapPin } from 'lucide-react';
 
 // Bundle MapLibre 6's separate worker; its default relative URL breaks after Vite optimization.
@@ -106,6 +107,7 @@ export const MapView: React.FC<MapViewProps> = ({
             'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
           ],
           tileSize: 256,
+          maxzoom: OSM_TILE_MAX_ZOOM,
           attribution: '&copy; OpenStreetMap contributors',
         },
       },
@@ -115,7 +117,6 @@ export const MapView: React.FC<MapViewProps> = ({
           type: 'raster',
           source: 'osm-tiles',
           minzoom: 0,
-          maxzoom: 19,
           paint: {
             'raster-saturation': -0.55,
             'raster-contrast': -0.05,
@@ -141,6 +142,7 @@ export const MapView: React.FC<MapViewProps> = ({
       style: styleConfig,
       center: [77.2090, 28.6139],
       zoom: isDemoMode ? 11.2 : 10.8,
+      maxZoom: MAP_MAX_ZOOM,
       pitch: 0,
       attributionControl: false,
     });

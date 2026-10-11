@@ -128,7 +128,7 @@ AWS Access Analyzer validated all **15** final identity policies with **no findi
   --output-format json --structured --show-summary none
 ```
 
-Evidence bucket: all four public-access blocks, AES256, versioning, HTTPS-only application access, GET/PUT/HEAD CORS for localhost and FrontendOrigin. Bucket and three tables have DeletionPolicy/UpdateReplacePolicy Retain. **No blanket 14-day uploads expiration:** case evidence still references these objects. Logs currently have no retention limit and may accumulate charges. API throttles are 20 requests/second, burst 40, but **there is no authentication**. CORS is not authentication. Use only disposable demo data, restrict demonstration duration, and require authentication/abuse controls before production or private-user-data use.
+Evidence bucket: all four public-access blocks, AES256, versioning, HTTPS-only application access, GET/PUT/HEAD CORS for localhost and the deployed Amplify origin. Bucket and three tables have DeletionPolicy/UpdateReplacePolicy Retain. **No blanket 14-day uploads expiration:** case evidence still references these objects. Logs currently have no retention limit and may accumulate charges. API throttles are 20 requests/second, burst 40, but **there is no authentication**. CORS is not authentication. Use only disposable demo data, restrict demonstration duration, and require authentication/abuse controls before production or private-user-data use.
 
 ## Exact resources and dependency order
 
@@ -164,8 +164,8 @@ The script checks identity, SES identity verification and regional ON_DEMAND mod
 ```bash
 sam deploy --stack-name argus --profile hackathon --region ap-southeast-2 \
   --capabilities CAPABILITY_IAM --resolve-s3 --no-fail-on-empty-changeset \
-  --parameter-overrides FrontendOrigin=http://localhost:5173 \
-    SesFrom=chauhanansh1046@gmail.com DryRunInbox=chauhanansh1046@gmail.com \
+  --parameter-overrides SesFrom=chauhanansh1046@gmail.com \
+    DryRunInbox=chauhanansh1046@gmail.com \
     NovaModelId=amazon.nova-lite-v1:0
 ```
 
@@ -232,7 +232,7 @@ Timebox nonessential integration troubleshooting to 10–15 minutes. Preserve ev
 5. SES sandbox/rate limit: preserve dry-run inbox and bounded tests; no production access request or external-recipient sends without approval.
 6. Bedrock AccessDenied/schema error: verify regional model permissions/provider prerequisites and request shape; no listing-based success claim and no global fallback. Keep demo/mock labeling explicit.
 7. S3/name conflict or rollback-retained tables: inventory and confirm ownership/stack management. Import/recovery is a separate reviewed plan; never delete retained evidence or duplicate stack-owned resources manually.
-8. CORS mismatch: compare browser origin to FrontendOrigin and returned headers; check API_BASE contains exactly one `/v1`. Changing the allowed deployment origin is another SAM change, not an ad hoc resource edit.
+8. CORS mismatch: compare browser origin to the exact origins in HttpApi.CorsConfiguration.AllowOrigins and S3 CorsRules[].AllowedOrigins; check API_BASE contains exactly one `/v1`. Changing the allowed deployment origin is another SAM change, not an ad hoc resource edit.
 
 CloudFormation default rollback remains enabled. For a later bad update, redeploy the previously reviewed template/artifacts **only with explicit approval**; do not Git-reset the user's working tree. `UPDATE_ROLLBACK_FAILED` requires diagnosed, approved recovery before `continue-update-rollback`. Deleting a stack, stopping executions, disabling a schedule, deleting test objects/records or altering retention are mutations and need authorization. Retained bucket/tables and unmanaged runtime log groups survive stack deletion; artifact resources may survive too. Ask whether to keep or clean up resources after the demo, with a concrete inventory and explicit approval. Never delete evidence to reduce costs automatically.
 
@@ -247,7 +247,7 @@ CloudFormation default rollback remains enabled. For a later bad update, redeplo
 
 ### First approved deployment finding
 
-The packaging stack reached CREATE_COMPLETE. The first application change set failed early property validation because S3 AllowedOrigins contained duplicate localhost values when FrontendOrigin equaled the default. No application resources were created by that failed change set. The template now conditionally omits the second localhost entry when redundant, for both API and S3 CORS. Nine infrastructure tests pass, including both local and distinct hosted-origin configurations. The approved retry completed successfully; validation was not bypassed.
+The packaging stack reached CREATE_COMPLETE. A later frontend CORS update rolled back after the generated API Gateway OpenAPI body contained `allowOrigins: [http://localhost:5173, http://localhost:5173]`; CloudFormation reported duplicate origins. The corrected template now lists the two exact origins directly (localhost and the Amplify host) for both API Gateway and S3, avoiding parameter substitution and conditional-list resolution. A new change set must be prepared, reviewed, and separately approved before execution.
 
 ### Sandbox credential refresh correction
 

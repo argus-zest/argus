@@ -1,8 +1,11 @@
 import os
+import logging
 import boto3
 from botocore.exceptions import ClientError
 from common.http import ok, err, parse_json
 from common.nova import analyze_hazard, NovaError
+
+logger = logging.getLogger(__name__)
 
 
 def get_s3_client():
@@ -44,6 +47,13 @@ def lambda_handler(event, context):
             return err(413, "IMAGE_TOO_LARGE", ne.message)
         elif ne.code == "BAD_REQUEST":
             return err(400, "BAD_REQUEST", ne.message)
-        return err(502, "MODEL_ERROR", ne.message)
+        elif ne.code == "DAILY_QUOTA_EXHAUSTED":
+            return err(503, ne.code, ne.message)
+        elif ne.code == "TRANSIENT_THROTTLING":
+            return err(503, ne.code, ne.message)
+        if ne.code == "MALFORMED_MODEL_RESPONSE":
+            return err(502, ne.code, "AI analysis could not be interpreted. You can continue submitting your report manually.")
+        logger.warning("Hazard analysis unavailable code=%s", ne.code)
+        return err(503, "AI_ANALYSIS_UNAVAILABLE", "AI analysis is temporarily unavailable. You can continue submitting your report manually.")
     except Exception as e:
         return err(500, "INTERNAL", f"Unexpected error during analysis: {str(e)}")

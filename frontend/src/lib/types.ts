@@ -63,7 +63,7 @@ export interface CaseEvent {
 }
 export interface CreateCaseRequest {
   hotspot_id?: string; lat?: number; lng?: number; asset_type?: AssetType;
-  analysis?: HazardAnalysis; photo_key?: string; timer_profile: 'demo' | 'real';
+  analysis?: HazardAnalysis | null; photo_key?: string; timer_profile: 'demo' | 'real';
 }
 export interface PresignResponse { upload_url: string; s3_key: string; expires_in: number }
 export interface ResolveResponse { road: Road | null; jurisdiction: Jurisdiction; warranty: Warranty }
@@ -75,7 +75,7 @@ export interface Verification extends MockIdentification {
   confidence?: number; explanation?: string;
 }
 export interface ClaimFixResponse {
-  accepted: boolean; reason: string; distance_m: number; verification: Verification;
+  accepted: boolean; reason: string; distance_m: number; verification: Verification | null;
   explanation?: string;
 }
 export interface CaseDetails { case: Case; events: CaseEvent[]; photo_url?: string | null }

@@ -1483,6 +1483,7 @@ export const responseSchemas: Record<string, unknown> = {
       },
       "verification": {
         "type": "object",
+        "nullable": true,
         "properties": {
           "hazard_still_present": {
             "type": "boolean"

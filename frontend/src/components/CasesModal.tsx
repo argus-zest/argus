@@ -46,6 +46,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
     reason: string;
     distance_m?: number;
     explanation?: string;
+    unavailable?: boolean;
   } | null>(null);
 
   // Countdown timer state
@@ -142,6 +143,12 @@ export const CasesModal: React.FC<CasesModalProps> = ({
 
     try {
       let repairPhotoKey: string | undefined = undefined;
+      if (!selectedCase.photo_key) {
+        throw Object.assign(new Error('The original report photo is missing; both before and after photos are required to verify a repair.'), { code: 'MISSING_BEFORE_PHOTO' });
+      }
+      if (!claimFile) {
+        throw Object.assign(new Error('Add an after-repair photo before submitting a claim.'), { code: 'MISSING_AFTER_PHOTO' });
+      }
       if (claimFile) {
         if (!['image/jpeg', 'image/png'].includes(claimFile.type)) {
           throw new Error('Repair photos must be JPEG or PNG');
@@ -175,6 +182,8 @@ export const CasesModal: React.FC<CasesModalProps> = ({
       setClaimResult({
         accepted: false,
         reason: err.message || 'Error processing repair verification claim',
+        // A transport or dependency error is not a verified rejection.
+        unavailable: true,
       });
     } finally {
       setIsClaiming(false);
@@ -314,6 +323,15 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                   <span className="text-xs text-slate-500">Autonomous progression across bureaucratic levels</span>
                 </div>
 
+                <details className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                  <summary className="cursor-pointer font-semibold text-slate-800">How the four rungs work</summary>
+                  <div className="mt-2 space-y-1.5 leading-relaxed">
+                    <p>A rung is the current escalation level for an unresolved case. Rung 1 notifies the assigned agency officer, rung 2 the Flood Control Order nodal officer, rung 3 the owning agency's Superintending/Chief Engineer, and rung 4 the District Magistrate.</p>
+                    <p>The workflow advances when its timer expires or a repair claim is actually rejected after verification. Demo timers are 20 seconds per rung. Real timers are 3 days, 2 days, 2 days, then 3 days.</p>
+                    <p>A verified repair closes the case. If the final rung times out or a verified claim is rejected there, the case is marked unresolved after all four levels.</p>
+                  </div>
+                </details>
+
                 <div className="grid grid-cols-4 gap-3">
                   {rungs.map((r) => {
                     const isPassed = currentRung > r.rung;
@@ -369,7 +387,16 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                   <div>
                     <div className="text-xs font-bold text-slate-800">Original Citizen Photo Evidence</div>
                     <div className="text-xs text-slate-500">
-                      Hazard: {selectedCase.analysis?.hazard_type || 'pothole'} (Severity: {selectedCase.analysis?.severity ?? 3}/5)
+                      {selectedCase.analysis && (
+                        selectedCase.analysis.description === 'Citizen reported hazard (photo omitted or manual override)'
+                        || selectedCase.analysis.visible_evidence === 'Manual citizen report'
+                      )
+                        ? 'AI analysis unavailable; the saved value is a legacy manual fallback, not a model result. No severity assessment is recorded.'
+                        : selectedCase.analysis
+                        ? `${selectedCase.analysis.source === 'bedrock' ? 'AI estimate' : selectedCase.analysis.source === 'local_mock' ? 'Local mock (not AI)' : 'Assessment source not recorded'}: ${selectedCase.analysis.hazard_type.replace(/_/g, ' ')} (recorded severity: ${selectedCase.analysis.severity}/5)`
+                        : selectedCase.photo_key
+                          ? 'AI analysis unavailable; severity was not assessed. Original photo is retained as evidence.'
+                          : 'No photo assessment was submitted; severity was not assessed.'}
                     </div>
                   </div>
                 </div>
@@ -385,6 +412,9 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                     </h3>
                     <span className="text-[11px] text-slate-400">Must be within 25m of hazard</span>
                   </div>
+                  {(!selectedCase.photo_key || !claimFile) && (
+                    <p className="text-[11px] text-slate-500">Repair verification requires the original report photo and a new after-repair photo.</p>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
@@ -433,7 +463,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
 
                   <button
                     onClick={handleSubmitClaim}
-                    disabled={isClaiming}
+                    disabled={isClaiming || !claimFile || !selectedCase.photo_key}
                     className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#0c192c] hover:bg-[#162740] text-white transition flex items-center justify-center space-x-2 shadow-xs"
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -443,13 +473,13 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                   {claimResult && (
                     <div
                       className={`p-3 rounded-xl border text-xs ${
-                        claimResult.accepted
+                        claimResult.unavailable ? 'bg-amber-50 border-amber-200 text-amber-900' : claimResult.accepted
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                           : 'bg-rose-50 border-rose-200 text-rose-800'
                       }`}
                     >
                       <div className="font-bold">
-                        {claimResult.accepted ? 'Fix Verified & Case Resolved!' : 'Claim Verification Rejected'}
+                        {claimResult.unavailable ? 'Verification unavailable — claim remains pending' : claimResult.accepted ? 'Fix Verified & Case Resolved!' : 'Claim Verification Rejected'}
                       </div>
                       <div className="mt-0.5">{claimResult.reason}</div>
                       {claimResult.distance_m !== undefined && (
@@ -457,6 +487,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                           Distance from recorded hazard: <strong>{claimResult.distance_m.toFixed(1)}m</strong> (Limit: 25m)
                         </div>
                       )}
+                      {claimResult.explanation && <div className="mt-1">{claimResult.explanation}</div>}
                     </div>
                   )}
                 </div>
@@ -488,7 +519,7 @@ export const CasesModal: React.FC<CasesModalProps> = ({
                       <strong>Subject:</strong> [DRY-RUN] Notice to {selectedCase.owner}: Waterlogging hazard at {selectedCase.hotspot_id || 'Corridor'}
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-                      {`DRY-RUN: this notice was NOT sent to any official.\n\nCase ID: ${selectedCase.case_id}\n\nLocation: https://www.openstreetmap.org/?mlat=${selectedCase.lat}&mlon=${selectedCase.lng}#map=18/${selectedCase.lat}/${selectedCase.lng}\n\nHazard: ${selectedCase.analysis?.hazard_type || 'pothole'} (Severity: ${selectedCase.analysis?.severity ?? 4}/5)\n\nDemand: Please inspect and repair, and reply with a geo-tagged photo of the repaired spot.\n\nGenerated by Argus (hackathon prototype)`}
+                      {`DRY-RUN: this notice was NOT sent to any official.\n\nCase ID: ${selectedCase.case_id}\n\nLocation: https://www.openstreetmap.org/?mlat=${selectedCase.lat}&mlon=${selectedCase.lng}#map=18/${selectedCase.lat}/${selectedCase.lng}\n\n${selectedCase.analysis ? `Recorded assessment: ${selectedCase.analysis.hazard_type} (AI-estimated severity: ${selectedCase.analysis.severity}/5)` : 'AI analysis unavailable; no severity assessment is recorded.'}\n\nDemand: Please inspect and repair, and reply with a geo-tagged photo of the repaired spot.\n\nGenerated by Argus (hackathon prototype)`}
                     </div>
                   </div>
                 )}

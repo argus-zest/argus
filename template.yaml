@@ -8,10 +8,6 @@ Metadata:
     AWSAgentToolkit: aws-cloudformation@3
 
 Parameters:
-  FrontendOrigin:
-    Type: String
-    Default: 'http://localhost:5173'
-    Description: Allowed origin for CORS
   SesFrom:
     Type: String
     Description: Verified SES email identity for sending notices
@@ -33,10 +29,6 @@ Parameters:
     NoEcho: true
     Default: ''
     Description: Optional API key for TomTom flow segment data
-
-Conditions:
-  HasAdditionalFrontendOrigin: !Not
-    - !Equals [!Ref FrontendOrigin, 'http://localhost:5173']
 
 Globals:
   Function:
@@ -67,8 +59,8 @@ Resources:
       StageName: '$default'
       CorsConfiguration:
         AllowOrigins:
-          - !Ref FrontendOrigin
-          - !If [HasAdditionalFrontendOrigin, 'http://localhost:5173', !Ref 'AWS::NoValue']
+          - 'http://localhost:5173'
+          - 'https://demo.d1ygq6l84twsei.amplifyapp.com'
         AllowHeaders:
           - '*'
         AllowMethods:
@@ -117,8 +109,8 @@ Resources:
               - PUT
               - HEAD
             AllowedOrigins:
-              - !Ref FrontendOrigin
-              - !If [HasAdditionalFrontendOrigin, 'http://localhost:5173', !Ref 'AWS::NoValue']
+              - 'http://localhost:5173'
+              - 'https://demo.d1ygq6l84twsei.amplifyapp.com'
             MaxAge: 3000
 
   StorageBucketPolicy:

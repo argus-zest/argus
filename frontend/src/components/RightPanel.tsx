@@ -107,6 +107,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       <div className="p-5 border-b border-slate-200 bg-slate-50/50 relative">
         <button
           onClick={onClose}
+          type="button"
+          aria-label="Close hotspot details panel"
+          title="Close details panel"
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-200/60 transition"
         >
           <X className="w-4 h-4" />

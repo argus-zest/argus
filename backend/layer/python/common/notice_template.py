@@ -41,8 +41,8 @@ def build_notice(
     osm_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lng}#map=18/{lat}/{lng}"
 
     analysis = case.get("analysis") or {}
-    hazard_type = analysis.get("hazard_type", "pothole")
-    severity = analysis.get("severity", 3)
+    hazard_type = analysis.get("hazard_type")
+    severity = analysis.get("severity")
     submerged = analysis.get("submerged", False)
     submerged_str = "Yes" if submerged else "No"
 
@@ -66,8 +66,20 @@ def build_notice(
         "DRY-RUN: this notice was NOT sent to any official.",
         f"Case ID: {case_id}",
         f"Location: {location_name} — {osm_url}",
-        f"Hazard: {hazard_type} (Severity: {severity}/5, Submerged: {submerged_str})",
     ]
+
+    legacy_manual_fallback = (
+        analysis.get("description") == "Citizen reported hazard (photo omitted or manual override)"
+        or analysis.get("visible_evidence") == "Manual citizen report"
+    )
+    if analysis and analysis.get("source") == "local_mock" and hazard_type and severity is not None:
+        lines.append(f"Hazard: Local mock (not AI): {hazard_type} (recorded severity: {severity}/5)")
+    elif analysis and not legacy_manual_fallback and hazard_type and severity is not None:
+        lines.append(f"Hazard: {hazard_type} (Recorded severity: {severity}/5, Submerged: {submerged_str})")
+    elif case.get("photo_key"):
+        lines.append("Hazard: AI analysis unavailable; no severity assessment is recorded.")
+    else:
+        lines.append("Hazard: No photo assessment was submitted; severity is not assessed.")
 
     if photo_url:
         lines.append(f"Photo Evidence: {photo_url}")

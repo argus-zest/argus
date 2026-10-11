@@ -329,6 +329,8 @@ paths:
           $ref: '#/components/responses/ImageTooLargeError'
         '502':
           $ref: '#/components/responses/ModelError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -540,10 +542,37 @@ paths:
                     type: number
                   verification:
                     type: object
+                    nullable: true
+                    required:
+                      - hazard_still_present
+                      - confidence
+                      - explanation
+                    properties:
+                      hazard_still_present:
+                        type: boolean
+                      same_location_plausible:
+                        type: boolean
+                        nullable: true
+                      confidence:
+                        type: number
+                        minimum: 0
+                        maximum: 1
+                      explanation:
+                        type: string
+                        maxLength: 200
+                      source:
+                        type: string
+                        enum: [bedrock, local_mock]
+                      mock:
+                        type: boolean
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -641,6 +670,15 @@ components:
                 - IMAGE_TOO_LARGE
                 - MODEL_ERROR
                 - INTERNAL
+                - DAILY_QUOTA_EXHAUSTED
+                - TRANSIENT_THROTTLING
+                - AI_ANALYSIS_UNAVAILABLE
+                - AI_QUOTA_EXHAUSTED
+                - AI_TEMPORARILY_UNAVAILABLE
+                - AI_VERIFICATION_UNAVAILABLE
+                - MALFORMED_MODEL_RESPONSE
+                - MISSING_BEFORE_PHOTO
+                - MISSING_AFTER_PHOTO
             message:
               type: string
 
@@ -671,6 +709,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     ModelError:
       description: Model Inference Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailableError:
+      description: AI model unavailable; operation remains pending
       content:
         application/json:
           schema:

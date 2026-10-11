@@ -41,7 +41,7 @@ Backend inference fixtures require `USE_MOCKS=true` AND `ARGUS_ENV=local`; deplo
 - Existing SAM resources and deployment script retained. No duplicate manual resources.
 - Removed example SES defaults from SAM parameters/config; sender/inbox must be supplied and verified.
 - Deployment preflight refuses wrong profile, Region, stack, model, project identity, and unverified sender/inbox. Require `EXPECTED_AWS_ACCOUNT_ID` after STS verification. Model catalog check is read-only and does not invoke.
-- S3 bucket remains `argus-${AWS::AccountId}-ap-southeast-2`; all four public-access blocks retained, explicit AES256 encryption and versioning added. Existing GET/PUT/HEAD CORS retained for FrontendOrigin and localhost:5173.
+- S3 bucket remains `argus-${AWS::AccountId}-ap-southeast-2`; all four public-access blocks retained, explicit AES256 encryption and versioning added. GET/PUT/HEAD CORS explicitly allows localhost:5173 and the deployed Amplify origin.
 - Removed blanket 14-day uploads expiration: case photo keys remain under uploads/ and are used by case views, repair verification, and notices. There is no promotion/tagging mechanism proving these objects are temporary. Add expiration only after a reviewed evidence-retention design.
 - Bucket and three DynamoDB tables now retain on stack deletion/replacement. Retained resources and S3 versions continue accruing storage costs and need deliberate lifecycle management.
 - Added separate table-name outputs while preserving existing TableNames, ApiBase, BucketName, and StateMachineArn outputs.
@@ -80,6 +80,6 @@ FRONTEND_ORIGIN=http://localhost:5173 \
 NOVA_MODEL_ID=amazon.nova-lite-v1:0 bash scripts/deploy.sh
 ```
 
-Script uses stack argus, CAPABILITY_IAM, resolve-s3, and actual template parameters FrontendOrigin, SesFrom, DryRunInbox, NovaModelId. Optional EnableTomtom/TomtomApiKey remain disabled/empty by default. Do not run seed/reset/smoke workflows until their writes/inference/email scope has separate bounded approval.
+Script uses stack argus, CAPABILITY_IAM, resolve-s3, and actual template parameters SesFrom, DryRunInbox, NovaModelId. API and S3 CORS explicitly allow localhost and the deployed Amplify origin. Optional EnableTomtom/TomtomApiKey remain disabled/empty by default. Do not run seed/reset/smoke workflows until their writes/inference/email scope has separate bounded approval.
 
 After approved deployment, describe stack outputs with hackathon in Sydney and populate the integration handoff with actual values. No deployment approval has been requested or granted. Local build gates now pass; dependency advisories and permission refinement remain documented review items. See DEPLOYMENT_PLAN.md for the concrete proposed configuration.
