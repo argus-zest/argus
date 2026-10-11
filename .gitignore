@@ -64,3 +64,6 @@ Thumbs.db
 .agent/
 .impeccable/
 
+# Frontend source modules must not be hidden by the Python lib/ ignore rule
+!frontend/src/lib/
+!frontend/src/lib/**

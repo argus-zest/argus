@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Hotspot, HazardAnalysis, Road, Jurisdiction, Warranty, Case } from '../lib/types';
-import { presignUpload, analyzeHazard, resolveLocation, createCase } from '../lib/api';
+import { Hotspot, HazardAnalysis, Road, Jurisdiction, Warranty, Case, CreateCaseRequest, AssetType } from '../lib/types';
+import { presignUpload, analyzeHazard, resolveLocation, createCase, uploadPhoto } from '../lib/api';
 import {
   X,
   Upload,
@@ -102,11 +102,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
       const resizedBlob = await resizeImage(file, 1280, 0.85);
 
       const presign = await presignUpload('report', 'image/jpeg');
-      await fetch(presign.upload_url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'image/jpeg' },
-        body: resizedBlob,
-      });
+      await uploadPhoto(presign.upload_url, resizedBlob, 'image/jpeg');
 
       setPhotoKey(presign.s3_key);
       setIsUploading(false);
@@ -221,11 +217,12 @@ export const ReportModal: React.FC<ReportModalProps> = ({
         }
       }
 
-      const payload = {
+      const payload: CreateCaseRequest = {
         hotspot_id: hotspotId,
         lat,
         lng,
-        asset_type: analysis?.hazard_type || 'pothole',
+        asset_type: ['pothole', 'open_manhole', 'missing_drain_cover'].includes(analysis?.hazard_type || '')
+          ? analysis?.hazard_type as AssetType : undefined,
         analysis: analysis || {
           hazard_type: 'unclear',
           severity: 3,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Hotspot, GroundAsset, RiskResponse, Case } from './lib/types';
-import { fetchHotspots, fetchAssets, fetchRisk, debounce } from './lib/api';
+import { fetchHotspots, fetchAssets, fetchRisk, debounce, MOCK_MODE } from './lib/api';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { MapView } from './components/MapView';
@@ -174,6 +174,12 @@ export const App: React.FC = () => {
         onOpenEvidence={() => setIsEvidenceOpen(true)}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
       />
+
+      {MOCK_MODE && (
+        <div role="status" className="px-4 py-2 bg-amber-50 text-amber-900 text-sm">
+          Local mock data — simulated risk, no live inference. Uploads and case workflows require a backend.
+        </div>
+      )}
 
       {/* Main Workspace Layout */}
       {coreError ? (

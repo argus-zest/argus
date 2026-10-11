@@ -259,7 +259,7 @@ where σ(x) = 1 / (1 + e^-x)`}
                       onChange={(e) => setSelectedEventIndex(Number(e.target.value))}
                       className="w-full py-2.5 px-3.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-sky-500 shadow-2xs"
                     >
-                      {events.map((ev: { event_id: string; date: string; description: string }, idx: number) => (
+                      {events.map((ev, idx) => (
                         <option key={ev.event_id || idx} value={idx}>
                           {ev.date} &mdash; {ev.description || ev.event_id}
                         </option>

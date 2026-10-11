@@ -1,4 +1,4 @@
-import { Hotspot, GroundAsset, RiskResponse } from '../lib/types';
+import type { Hotspot, GroundAsset, RiskResponse } from '../lib/types.ts';
 
 export const MOCK_ASSETS: GroundAsset[] = [
   {
